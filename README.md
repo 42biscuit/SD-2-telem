@@ -3,13 +3,13 @@ This is the plotting software supporting the telemetry system for The University
 
 
 ## Todo  (When a task is done tick off and Will be deleted at the next Telemetry meeting)
-- [] Write tests for data loading
-- [] Update file loading for new file format
-- [] Get Git upto date
-- [] Finish README
-- [] Make current program adhear to syntax rules
-- [] go over Struct system
-- [] decide on library for python plotting
+- [ ] Write tests for data loading
+- [ ] Update file loading for new file format
+- [ ] Get Git upto date
+- [ ] Finish README
+- [ ] Make current program adhear to syntax rules
+- [ ] go over Struct system
+- [ ] decide on library for python plotting
 
 
 ## Project Programming Methodology
