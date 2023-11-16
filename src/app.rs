@@ -1,5 +1,5 @@
 use crate::{Buff, BUFF_SIZE};
-use egui::plot::{Line, Plot, PlotPoints};
+use egui::plot::{Line, Plot, PlotPoints, PlotPoint};
 use egui::widgets::plot;
 use std::fs;
 
@@ -17,17 +17,22 @@ pub struct TemplateApp {
     // this how you opt-out of serialization of a member
     #[serde(skip)]
     value: f64,
+    bottom_out_threshold: f64,
+    bottom_outs: u32,
 
 }
 
 impl Default for TemplateApp {
     fn default() -> Self {
+        let data = Buff::new();
         Self {
             // Example stuff:
             time: 0,
             path: "Hello World!".to_owned(),
-            data: Buff::new(),
+            data,
             value: 1.0,
+            bottom_out_threshold: 0.0,
+            bottom_outs: 0,
         }
     }
 }
@@ -46,6 +51,22 @@ impl TemplateApp {
 
         Default::default()
     }
+
+    pub fn count_bottom_outs(&mut self) {
+        self.bottom_outs = 0;
+        let mut above_threshold = self.data.data[0] as f64 > self.bottom_out_threshold;
+        for reading in &self.data.data {
+            let reading_as_f64 = *reading as f64;
+            if reading_as_f64 > self.bottom_out_threshold {
+                if !above_threshold {
+                    self.bottom_outs += 1;
+                }
+                above_threshold = true;
+            } else {
+                above_threshold = false;
+            }
+        }
+    }
 }
 
 impl eframe::App for TemplateApp {
@@ -57,7 +78,7 @@ impl eframe::App for TemplateApp {
     /// Called each time the UI needs repainting, which may be many times per second.
     /// Put your widgets into a `SidePanel`, `TopPanel`, `CentralPanel`, `Window` or `Area`.
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
-        let Self { path, data, value,time } = self;
+        //let Self { path, data, value,time, bottom_outs } = self;
 
         // Examples of how to create different panels and windows.
         // Pick whichever suits you.
@@ -83,18 +104,31 @@ impl eframe::App for TemplateApp {
 
             ui.horizontal(|ui| {
                 ui.label("path to data.");
-                ui.text_edit_singleline(path);
+                ui.text_edit_singleline(&mut self.path);
             });
             if ui.button("Load").clicked() {
-                data.load(path.to_string());
-                println!("{}",&path);
+                self.data.load(self.path.to_string());
+                self.count_bottom_outs();
+                println!("{}", &self.path);
             }
-            ui.add(egui::Slider::new(value, 0.0..=100.0).text("value"));
-            ui.add(egui::Slider::new(time, 1..=10).text("time for loading"));
+            ui.add(egui::Slider::new(&mut self.value, 0.0..=100.0).text("value"));
+            ui.add(egui::Slider::new(&mut self.time, 1..=10).text("time for loading"));
             if ui.button("Increment").clicked() {
-                *value += 1.0;
+                self.value += 1.0;
             }
 
+            ui.heading("Data From Run");
+            ui.horizontal(|ui| {
+                ui.label("Bottom outs: ");
+                ui.label(self.bottom_outs.to_string());
+            });
+            ui.horizontal(|ui| {
+                ui.label("Bottom threshhold: ");
+                ui.add(egui::Slider::new(&mut self.bottom_out_threshold, 0.0..=1000.0).text("Threshold"));
+            });
+            if (ui.button("Recalculate").clicked()) {
+                self.count_bottom_outs();
+            }
 
             ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {
                 ui.horizontal(|ui| {
@@ -126,10 +160,18 @@ impl eframe::App for TemplateApp {
                 .collect();
             let line = Line::new(points);
 
+            let bottom_out_points: PlotPoints = (0..2).map(|i| {
+                [i as f64 * self.time as f64 * self.data.data.len() as f64 * TIME_STEP * self.value, self.bottom_out_threshold]
+            }).collect();
+            let bottom_out_line = Line::new(bottom_out_points);
+
             let window_info = frame.info().window_info.clone();
             Plot::new("my_plot")
                 .view_aspect(1.0)
-                .show(ui, |plot_ui| plot_ui.line(line));
+                .show(ui, |plot_ui| {
+                    plot_ui.line(line);
+                    plot_ui.line(bottom_out_line);
+                });
             ui.heading("eframe template");
             ui.hyperlink("https://github.com/emilk/eframe_template");
             ui.add(egui::github_link_file!(
@@ -138,7 +180,7 @@ impl eframe::App for TemplateApp {
             ));
             egui::warn_if_debug_build(ui);
         });
-
+   
         if false {
             egui::Window::new("Window").show(ctx, |ui| {
                 ui.label("Windows can be moved by dragging them.");
