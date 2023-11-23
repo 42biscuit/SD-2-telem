@@ -6,3 +6,5 @@ mod data;
 pub use app::TemplateApp;
 pub use data::Buff;
 pub use data::BUFF_SIZE;
+
+mod graph;
