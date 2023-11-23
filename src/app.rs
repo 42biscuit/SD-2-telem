@@ -1,6 +1,8 @@
+use crate::graph::Graph;
+use crate::graph::suspension_graph::{SuspensionGraph, self};
 use crate::{Buff, BUFF_SIZE};
-use egui::plot::{Line, Plot, PlotPoints, PlotPoint};
-use egui::widgets::plot;
+use egui_plot::{Line, Plot, PlotPoints, PlotPoint};
+use std::collections::HashMap;
 use std::fs;
 
 const TIME_STEP: f64 = 0.1;
@@ -19,12 +21,14 @@ pub struct TemplateApp {
     value: f64,
     bottom_out_threshold: f64,
     bottom_outs: u32,
-
+    #[serde(skip)]
+    suspension_graph: SuspensionGraph,
 }
 
 impl Default for TemplateApp {
     fn default() -> Self {
         let data = Buff::new();
+
         Self {
             // Example stuff:
             time: 0,
@@ -33,6 +37,7 @@ impl Default for TemplateApp {
             value: 1.0,
             bottom_out_threshold: 0.0,
             bottom_outs: 0,
+            suspension_graph: SuspensionGraph::blank(),
         }
     }
 }
@@ -40,9 +45,6 @@ impl Default for TemplateApp {
 impl TemplateApp {
     /// Called once before the first frame.
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
-        // This is also where you can customize the look and feel of egui using
-        // `cc.egui_ctx.set_visuals` and `cc.egui_ctx.set_fonts`.
-
         // Load previous app state (if any).
         // Note that you must enable the `persistence` feature for this to work.
         if let Some(storage) = cc.storage {
@@ -108,6 +110,7 @@ impl eframe::App for TemplateApp {
             });
             if ui.button("Load").clicked() {
                 self.data.load(self.path.to_string());
+                self.suspension_graph.set_data(&self.data.data);
                 self.count_bottom_outs();
                 println!("{}", &self.path);
             }
@@ -124,7 +127,7 @@ impl eframe::App for TemplateApp {
             });
             ui.horizontal(|ui| {
                 ui.label("Bottom threshhold: ");
-                ui.add(egui::Slider::new(&mut self.bottom_out_threshold, 0.0..=1000.0).text("Threshold"));
+                ui.add(egui::Slider::new(&mut self.bottom_out_threshold, 0.0..=60.0).text("Threshold"));
             });
             if (ui.button("Recalculate").clicked()) {
                 self.count_bottom_outs();
@@ -148,30 +151,20 @@ impl eframe::App for TemplateApp {
         egui::CentralPanel::default().show(ctx, |ui| {
             // The central panel the region left after adding TopPanel's and SidePanel's
             let width = ctx.available_rect().width().floor();
-            let mut points:PlotPoints = self
-                .data.clone()
-                .data
-                .iter()
-                .enumerate()
-                .map(|i| {
-                    let x = self.time as f64 * i.0 as f64 * TIME_STEP * self.value;
-                    [x, (*i.1).0 as f64]
-                })
-                .collect();
-            let line = Line::new(points);
-
-            let bottom_out_points: PlotPoints = (0..2).map(|i| {
-                [i as f64 * self.time as f64 * self.data.data.len() as f64 * TIME_STEP * self.value, self.bottom_out_threshold]
-            }).collect();
-            let bottom_out_line = Line::new(bottom_out_points);
+            
+            // let bottom_out_points: PlotPoints = (0..2).map(|i| {
+            //     [i as f64 * self.time as f64 * self.data.data.len() as f64 * TIME_STEP * self.value, self.bottom_out_threshold]
+            // }).collect();
+            // let bottom_out_line = Line::new(bottom_out_points);
 
             let window_info = frame.info().window_info.clone();
-            Plot::new("my_plot")
-                .view_aspect(1.0)
-                .show(ui, |plot_ui| {
-                    plot_ui.line(line);
-                    plot_ui.line(bottom_out_line);
-                });
+            
+            let mut metadata = HashMap::<String, f64>::new();
+            metadata.insert("bottom_out_threshold".to_string(), self.bottom_out_threshold);
+
+            self.suspension_graph.set_metadata(&metadata);
+            self.suspension_graph.update(ui);
+
             ui.heading("eframe template");
             ui.hyperlink("https://github.com/emilk/eframe_template");
             ui.add(egui::github_link_file!(

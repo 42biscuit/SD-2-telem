@@ -13,6 +13,15 @@ pub struct Buff{
     stackBuff:[u16;BUFF_SIZE],
 }
 
+impl ToGraphPoint for u16 {
+    fn to_graph_point(&self, x: f64) -> GraphPoint {
+        GraphPoint {
+            x,
+            y: (*self as f64) / (1024.0 / 60.0),
+        }
+    }
+}
+
 impl Buff{
     /// constructs new Buff size BUFF_SIZE
     pub fn new()->Self{
@@ -56,6 +65,9 @@ impl Buff{
 
 
 use std::ops::{Bound, RangeBounds};
+
+use crate::graph::GraphPoint;
+use crate::graph::ToGraphPoint;
 
 trait StringUtils {
     fn substring(&self, start: usize, len: usize) -> &str;
