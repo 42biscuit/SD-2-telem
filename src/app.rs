@@ -54,8 +54,8 @@ impl TemplateApp {
 
     pub fn count_bottom_outs(&mut self) {
         self.bottom_outs = 0;
-        let mut above_threshold = self.data.data[0] as f64 > self.bottom_out_threshold;
-        for reading in &self.data.data {
+        let mut above_threshold = self.data.data[0].0 as f64 > self.bottom_out_threshold;
+        for (reading,_) in &self.data.data {
             let reading_as_f64 = *reading as f64;
             if reading_as_f64 > self.bottom_out_threshold {
                 if !above_threshold {
@@ -155,7 +155,7 @@ impl eframe::App for TemplateApp {
                 .enumerate()
                 .map(|i| {
                     let x = self.time as f64 * i.0 as f64 * TIME_STEP * self.value;
-                    [x, *i.1 as f64]
+                    [x, (*i.1).0 as f64]
                 })
                 .collect();
             let line = Line::new(points);
