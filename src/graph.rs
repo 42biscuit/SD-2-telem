@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use egui::{Ui};
 
+pub mod line;
 pub mod suspension_graph;
 
 pub struct GraphPoint {
