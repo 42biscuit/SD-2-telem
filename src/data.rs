@@ -9,7 +9,7 @@ pub const frequency: u16 = 40;
 
 #[derive(Clone)]
 pub struct Buff{
-    pub data:Vec<(u16,u16)>,            //position / time
+    pub data:Vec<u16>,
     stackBuff:[u16;BUFF_SIZE],
 }
 
@@ -46,11 +46,7 @@ impl Buff{
         for line in io::BufReader::new(&file).lines(){
             let lineHolder = line.unwrap();
             match lineHolder.find("."){
-                Some(i) => {
-                    let mut lineSplit = lineHolder.split(",");
-                    self.data.push((lineSplit.next().unwrap().parse::<u16>().unwrap(),lineSplit.next().unwrap().parse::<u16>().unwrap()))
-                
-                },
+                Some(i) => self.data.push(lineHolder.slice(0 as usize..i).parse::<u16>().unwrap()),
                     //self.data.push(lineHolder.slice(0 as usize..lineHolder.find(".").unwrap()).parse::<u16>().unwrap());
                 None => break,
             }
