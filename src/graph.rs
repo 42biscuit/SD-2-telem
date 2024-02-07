@@ -1,38 +1,23 @@
 use std::collections::HashMap;
 
 use egui::{Ui};
+use egui_plot::PlotPoint;
 
-pub mod line;
 pub mod suspension_graph;
 
-pub struct GraphPoint {
-    pub x: f64,
-    pub y: f64,
-}
-
-pub trait ToGraphPoint {
-    fn to_graph_point(&self, x: f64) -> GraphPoint;        
-}
-
 pub trait ToPlotPoint {
-    fn to_plot_point(&self) -> [f64; 2];
+    fn to_plot_point(&self) -> PlotPoint;
 }
 
-impl ToPlotPoint for GraphPoint {
-    fn to_plot_point(&self) -> [f64; 2] {
-        [self.x, self.y]
-    }
-}
-
-pub fn to_graph_points<T: ToGraphPoint>(data: &Vec<T>) -> Vec<GraphPoint> where T: Sized {
+pub fn to_plot_points<T: ToPlotPoint>(data: &Vec<T>) -> Vec<PlotPoint> where T: Sized {
     data.iter().enumerate().map(|(i, d)| {
-        d.to_graph_point(i as f64)
+        d.to_plot_point()
     }).collect()
 }
 
 pub trait Graph {
     fn init(&mut self);
-    fn set_data<T: ToGraphPoint>(&mut self, data: &Vec<T>);
+    fn set_data<T: ToPlotPoint>(&mut self, data: &Vec<T>);
     fn set_metadata(&mut self, metadata: &HashMap<String, f64>);
-    fn update(&self, ui: &mut Ui);
+    fn update(&mut self, ui: &mut Ui);
 }

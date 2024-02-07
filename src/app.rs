@@ -2,8 +2,10 @@ use crate::graph::Graph;
 use crate::graph::suspension_graph::{SuspensionGraph, self};
 use crate::{Buff, BUFF_SIZE};
 use egui_plot::{Line, Plot, PlotPoints, PlotPoint};
+use rfd::FileDialog;
 use std::collections::HashMap;
-use std::fs;
+use std::path::PathBuf;
+use std::{env, fs};
 
 const TIME_STEP: f64 = 0.1;
 
@@ -109,11 +111,41 @@ impl eframe::App for TemplateApp {
                 ui.text_edit_singleline(&mut self.path);
             });
             if ui.button("Load").clicked() {
-                self.data.load(self.path.to_string());
-                self.suspension_graph.set_data(&self.data.data);
-                self.count_bottom_outs();
-                println!("{}", &self.path);
+                // self.data.load(self.path.to_string());
+                // self.suspension_graph.set_data(&self.data.data);
+                // self.count_bottom_outs();
+                // println!("{}", &self.path);
             }
+            
+            ui.horizontal(|ui| {
+                if ui.button("Select File").clicked() {
+                    let mut res_dir = env::current_dir()
+                        .unwrap_or(PathBuf::default());
+
+                    res_dir.push("resources");
+
+                    let file = FileDialog::new()
+                        .add_filter("Run Data", &["txt"])
+                        .set_directory(res_dir)
+                        .pick_file();
+
+                    if let Some(file_path) = file {
+                        self.path = file_path.to_str().unwrap().to_string();
+                        self.data.load(self.path.to_string());
+                        
+                        let data_tuple = self.data.data.iter().enumerate().map(|(i, d)| {
+                            (i as u32, *d)
+                        }).collect();
+
+                        self.suspension_graph.set_data(&data_tuple);
+                        self.count_bottom_outs();
+                    }
+
+                    println!("{:?}", self.path);
+                }
+                ui.label(self.path.clone());
+            });
+
             ui.add(egui::Slider::new(&mut self.value, 0.0..=100.0).text("value"));
             ui.add(egui::Slider::new(&mut self.time, 1..=10).text("time for loading"));
             if ui.button("Increment").clicked() {

@@ -9,15 +9,15 @@ pub const frequency: u16 = 40;
 
 #[derive(Clone)]
 pub struct Buff{
-    pub data:Vec<u16>,
+    pub data:Vec<u32>,
     stackBuff:[u16;BUFF_SIZE],
 }
 
-impl ToGraphPoint for u16 {
-    fn to_graph_point(&self, x: f64) -> GraphPoint {
-        GraphPoint {
-            x,
-            y: (*self as f64) / (1024.0 / 60.0),
+impl ToPlotPoint for (u32, u32) {
+    fn to_plot_point(&self) -> PlotPoint {
+        PlotPoint {
+            x: self.0 as f64,
+            y: (self.1 as f64) / (1024.0 / 60.0),
         }
     }
 }
@@ -35,7 +35,6 @@ impl Buff{
         self.stackBuff
     }
 
-
     /// takes a String path [path] and returns instace of bufReader
     /// - [x] Load all data
     /// - [ ]  Save time data to allow easier referencing
@@ -46,7 +45,7 @@ impl Buff{
         for line in io::BufReader::new(&file).lines(){
             let lineHolder = line.unwrap();
             match lineHolder.find("."){
-                Some(i) => self.data.push(lineHolder.slice(0 as usize..i).parse::<u16>().unwrap()),
+                Some(i) => self.data.push(lineHolder.slice(0 as usize..i).parse::<u32>().unwrap()),
                     //self.data.push(lineHolder.slice(0 as usize..lineHolder.find(".").unwrap()).parse::<u16>().unwrap());
                 None => break,
             }
@@ -57,13 +56,11 @@ impl Buff{
     }
 }
 
-
-
-
 use std::ops::{Bound, RangeBounds};
 
-use crate::graph::GraphPoint;
-use crate::graph::ToGraphPoint;
+use egui_plot::PlotPoint;
+
+use crate::graph::ToPlotPoint;
 
 trait StringUtils {
     fn substring(&self, start: usize, len: usize) -> &str;
