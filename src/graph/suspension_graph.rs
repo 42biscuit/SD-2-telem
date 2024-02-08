@@ -53,7 +53,10 @@ impl Graph for SuspensionGraph {
             .view_aspect(5.0)
             .allow_scroll(false)
             .allow_boxed_zoom(false)
-            .allow_drag(axis_bools);
+            .allow_drag(axis_bools)
+            .allow_zoom(axis_bools)
+            .include_y(0.0)
+            .include_y(60.0);
 
         let mut extremes = [0.0, 0.0];
         
