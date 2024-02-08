@@ -65,6 +65,9 @@ impl Graph for SuspensionGraph {
         let temp_travel_line = self.line_manager.gen_line(extremes[0], extremes[1]);
 
         plot.show(ui, |plot_ui| {
+            if let Some(travel_line) = temp_travel_line {
+                plot_ui.line(travel_line);
+            }
             //plot_ui.line(temp_travel_line);
             plot_ui.line(bottom_out_line);  
         });

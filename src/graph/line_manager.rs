@@ -1,4 +1,5 @@
-use egui_plot::{Line, PlotPoint};
+use egui_plot::{Line, PlotPoint, PlotPoints};
+use tracing_subscriber::filter::combinator::Or;
 
 const MAX_POINTS: usize = 1000;
 
@@ -11,47 +12,26 @@ pub struct LineManager {
     instances: Vec<LineInstance>,
 }
 
-fn find_point_in_vec(data: &Vec<PlotPoint>, x_val: f64) -> Option<usize> {
-    const MAX_ITERATIONS: u32 = 50;
-    const COMPARE_MAX: f64 = 0.0005;
-
-    if data.len() == 0 {
-        return None;
-    }
-
-    let mut iterations = 0;
-    let mut final_i: Option<usize> = None;
-
-    let mut low_i: usize = 0;
-    let mut high_i: usize = data.len();
-    while iterations < MAX_ITERATIONS {
-        iterations += 1;
-
-        let mid_i = (low_i + high_i) / 2;
-        let mid_val = data[mid_i].x;
-
-        if x_val - mid_val < COMPARE_MAX {
-            final_i = Some(mid_i);
-
-            break;
-        } else if x_val > data[mid_i].x {
-            low_i = mid_i;
-        } else {
-            high_i = mid_i;
-        }
-    }
-
-    final_i
-}
-
 impl LineInstance {
     pub fn get_points_in_range(&self, min: f64, max: f64) -> (usize, usize) {
         if self.data.len() == 0 {
             return (0, 0);
         }
 
-        let low_i = find_point_in_vec(&self.data, min).unwrap_or(0);
-        let high_i = find_point_in_vec(&self.data, max).unwrap_or(self.data.len() - 1);
+        let step = 2usize.pow(self.period);
+    
+        let min_i = f64::max(min, 0.0) as usize;
+        let max_i = f64::max(max, 0.0) as usize;
+        
+        let mut low_i = min_i / step;
+        let mut high_i = max_i / step + 1;
+
+        low_i = low_i.min(self.data.len() - 1);
+        high_i = high_i.min(self.data.len() - 1);
+
+        if low_i > high_i {
+            return (0, self.data.len() - 1);
+        }
 
         (low_i, high_i)
     }
@@ -66,7 +46,7 @@ impl LineManager {
         
         for i in 0..max_period {
             instances.push(LineInstance {
-                period: i + 1,
+                period: i,
                 data: Vec::with_capacity(2usize.pow(i) * MAX_POINTS),
             })
         }
@@ -84,9 +64,23 @@ impl LineManager {
         }
     }
 
-    pub fn gen_line(&self, min: f64, max: f64) {
+    pub fn gen_line(&self, min: f64, max: f64) -> Option<Line> {
         for i in &self.instances {
-            i.get_points_in_range(min, max);
+            let indices = i.get_points_in_range(min, max);
+            let line_len = indices.1 - indices.0;
+
+            if indices.1 - indices.0 > MAX_POINTS {
+                continue;
+            }
+
+            let mut line_points = vec![PlotPoint { x: 0.0, y: 0.0 }; line_len];
+
+            line_points.clone_from_slice(&i.data[indices.0..indices.1]);
+            println!("{}", line_len);
+
+            return Some(Line::new(PlotPoints::Owned(line_points)));
         }
+
+        None
     }
 }
