@@ -27,6 +27,7 @@ impl Graph for SuspensionGraph {
     fn init(&mut self) {}
 
     fn set_data<T: ToPlotPoint>(&mut self, data: &Vec<T>) {
+        println!("Data len: {}", data.len());
         self.points = to_plot_points(data);
         self.travel_line = Line::new(Vec::new());
         //self.travel_line = Line::new(PlotPoints::Owned(self.points));

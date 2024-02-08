@@ -137,8 +137,12 @@ impl eframe::App for TemplateApp {
                             (i as u32, *d)
                         }).collect();
 
+                        println!("{}, {}", self.data.data.len(), file_path.to_str().unwrap());
+
                         self.suspension_graph.set_data(&data_tuple);
                         self.count_bottom_outs();
+
+                        println!("{}, {}", self.data.data.len(), file_path.to_str().unwrap());
                     }
 
                     println!("{}", self.path);

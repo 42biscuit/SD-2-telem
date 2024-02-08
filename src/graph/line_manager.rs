@@ -1,7 +1,7 @@
 use egui_plot::{Line, PlotPoint, PlotPoints};
 use tracing_subscriber::filter::combinator::Or;
 
-const MAX_POINTS: usize = 1000;
+const MAX_POINTS: usize = 10000;
 
 pub struct LineInstance {
     pub period: u32,
@@ -39,7 +39,8 @@ impl LineInstance {
 
 impl LineManager {
     pub fn new(data: &Vec<PlotPoint>) -> LineManager {
-        let max_period_f = (data.len() as f64 / MAX_POINTS as f64).log2();
+        let data_len = data.len();
+        let max_period_f = (data_len as f64 / MAX_POINTS as f64).log2();
         let max_period = u32::max(max_period_f as u32 + 1, 1);
 
         let mut instances = Vec::<LineInstance>::new();
@@ -76,7 +77,7 @@ impl LineManager {
             let mut line_points = vec![PlotPoint { x: 0.0, y: 0.0 }; line_len];
 
             line_points.clone_from_slice(&i.data[indices.0..indices.1]);
-            println!("{}", line_len);
+            //println!("{}", line_len);
 
             return Some(Line::new(PlotPoints::Owned(line_points)));
         }
