@@ -1,9 +1,10 @@
 use std::collections::HashMap;
 
-use egui::{Ui};
+use egui::{Context, Ui};
 use egui_plot::PlotPoint;
 
 pub mod suspension_graph;
+pub mod line_manager;
 
 pub trait ToPlotPoint {
     fn to_plot_point(&self) -> PlotPoint;
@@ -19,5 +20,5 @@ pub trait Graph {
     fn init(&mut self);
     fn set_data<T: ToPlotPoint>(&mut self, data: &Vec<T>);
     fn set_metadata(&mut self, metadata: &HashMap<String, f64>);
-    fn update(&mut self, ui: &mut Ui);
+    fn update(&mut self, ctx: &Context, ui: &mut Ui);
 }

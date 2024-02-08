@@ -81,7 +81,7 @@ impl eframe::App for TemplateApp {
 
     /// Called each time the UI needs repainting, which may be many times per second.
     /// Put your widgets into a `SidePanel`, `TopPanel`, `CentralPanel`, `Window` or `Area`.
-    fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
+    fn update(&mut self, ctx: &eframe::egui::Context, frame: &mut eframe::Frame) {
         //let Self { path, data, value,time, bottom_outs } = self;
 
         // Examples of how to create different panels and windows.
@@ -95,7 +95,7 @@ impl eframe::App for TemplateApp {
             egui::menu::bar(ui, |ui| {
                 ui.menu_button("File", |ui| {
                     if ui.button("Quit").clicked() {
-                        frame.close();
+                        //frame.close();
                     }
                     if ui.button("more").clicked() {
                         println!("button pressed");
@@ -141,7 +141,7 @@ impl eframe::App for TemplateApp {
                         self.count_bottom_outs();
                     }
 
-                    println!("{:?}", self.path);
+                    println!("{}", self.path);
                 }
                 ui.label(self.path.clone());
             });
@@ -189,13 +189,13 @@ impl eframe::App for TemplateApp {
             // }).collect();
             // let bottom_out_line = Line::new(bottom_out_points);
 
-            let window_info = frame.info().window_info.clone();
+            let window_info = frame.info().clone();
             
             let mut metadata = HashMap::<String, f64>::new();
             metadata.insert("bottom_out_threshold".to_string(), self.bottom_out_threshold);
 
             self.suspension_graph.set_metadata(&metadata);
-            self.suspension_graph.update(ui);
+            self.suspension_graph.update(ctx, ui);
 
             ui.heading("eframe template");
             ui.hyperlink("https://github.com/emilk/eframe_template");
