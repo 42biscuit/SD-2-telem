@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-
+use crate::graph::bar_graph;
 use egui::{Context, Id, Ui, Vec2b, WidgetText};
 use egui_plot::{Line, Plot, PlotBounds, PlotMemory, PlotPoint, PlotPoints};
 
@@ -27,15 +27,16 @@ impl<'a> Graph<'a> for SuspensionGraph {
             bottom_out_threshold = *bot;
         }
 
-        let axis_bools = Vec2b::new(true, false);
+        let axis_bools_drag = Vec2b::new(true, false);
+        let axis_bools_auto_zoom = Vec2b::new(false,false);
 
         let plot = Plot::new("suspension")
             .id(Id::new("suspension"))
             .view_aspect(5.0)
             .allow_scroll(false)
             .allow_boxed_zoom(false)
-            .allow_drag(axis_bools)
-            .allow_zoom(axis_bools)
+            .allow_drag(axis_bools_drag)
+            .allow_zoom(axis_bools_drag)
             .show_grid(false)
             .include_y(0.0)
             .include_y(60.0);

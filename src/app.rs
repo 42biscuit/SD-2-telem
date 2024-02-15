@@ -1,9 +1,11 @@
+
 use crate::data::{Data, TelemData};
 use crate::graph::line_manager::LineManager;
 use crate::graph::{line_manager, to_plot_points, Graph};
 use crate::graph::suspension_graph::{SuspensionGraph, self};
 use crate::view::View;
 use crate::{data, Buff, BUFF_SIZE};
+use egui_plot::{Line, Plot, PlotPoints, PlotPoint};
 use rfd::FileDialog;
 use std::collections::HashMap;
 use std::path::PathBuf;
