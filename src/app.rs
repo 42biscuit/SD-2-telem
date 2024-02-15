@@ -1,7 +1,9 @@
-use crate::graph::Graph;
+use crate::data::{Data, TelemData};
+use crate::graph::line_manager::LineManager;
+use crate::graph::{line_manager, to_plot_points, Graph};
 use crate::graph::suspension_graph::{SuspensionGraph, self};
-use crate::{Buff, BUFF_SIZE};
-use egui_plot::{Line, Plot, PlotPoints, PlotPoint};
+use crate::view::View;
+use crate::{data, Buff, BUFF_SIZE};
 use rfd::FileDialog;
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -12,7 +14,7 @@ const TIME_STEP: f64 = 0.1;
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[derive(serde::Deserialize, serde::Serialize)]
 #[serde(default)] // if we add new fields, give them default values when deserializing old state
-pub struct TemplateApp {
+pub struct TelemApp<'a> {
     // Example stuff:
     path: String,
     time:u64,
@@ -24,10 +26,12 @@ pub struct TemplateApp {
     bottom_out_threshold: f64,
     bottom_outs: u32,
     #[serde(skip)]
-    suspension_graph: SuspensionGraph,
+    telem_data: Data,
+    #[serde(skip)]
+    sus_view: View<'a>,
 }
 
-impl Default for TemplateApp {
+impl<'a> Default for TelemApp<'a> {
     fn default() -> Self {
         let data = Buff::new();
 
@@ -39,12 +43,13 @@ impl Default for TemplateApp {
             value: 1.0,
             bottom_out_threshold: 0.0,
             bottom_outs: 0,
-            suspension_graph: SuspensionGraph::blank(),
+            telem_data: Data::new(),
+            sus_view: View::new(),
         }
     }
 }
 
-impl TemplateApp {
+impl<'a> TelemApp<'a> {
     /// Called once before the first frame.
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         // Load previous app state (if any).
@@ -73,21 +78,15 @@ impl TemplateApp {
     }
 }
 
-impl eframe::App for TemplateApp {
+impl<'a> eframe::App for TelemApp<'a> {
     /// Called by the frame work to save state before shutdown.
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
         eframe::set_value(storage, eframe::APP_KEY, self);
     }
 
     /// Called each time the UI needs repainting, which may be many times per second.
-    /// Put your widgets into a `SidePanel`, `TopPanel`, `CentralPanel`, `Window` or `Area`.
     fn update(&mut self, ctx: &eframe::egui::Context, frame: &mut eframe::Frame) {
-        //let Self { path, data, value,time, bottom_outs } = self;
-
-        // Examples of how to create different panels and windows.
-        // Pick whichever suits you.
-        // Tip: a good default choice is to just keep the `CentralPanel`.
-        // For inspiration and more examples, go to https://emilk.github.io/egui
+        let mut data_tuple: Option<Vec<(u32, u32)>> = None;
 
         #[cfg(not(target_arch = "wasm32"))] // no File->Quit on web pages!
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
@@ -133,19 +132,16 @@ impl eframe::App for TemplateApp {
                         self.path = file_path.to_str().unwrap().to_string();
                         self.data.load(self.path.to_string());
                         
-                        let data_tuple = self.data.data.iter().enumerate().map(|(i, d)| {
+                        data_tuple = Some(self.data.data.iter().enumerate().map(|(i, d)| {
                             (i as u32, *d)
-                        }).collect();
+                        }).collect());
 
-                        println!("{}, {}", self.data.data.len(), file_path.to_str().unwrap());
+                        //println!("{}, {}", self.data.data.len(), file_path.to_str().unwrap());
 
-                        self.suspension_graph.set_data(&data_tuple);
-                        self.count_bottom_outs();
-
-                        println!("{}, {}", self.data.data.len(), file_path.to_str().unwrap());
+                        //println!("{}, {}", self.data.data.len(), file_path.to_str().unwrap());
                     }
 
-                    println!("{}", self.path);
+                    //println!("{}", self.path);
                 }
                 ui.label(self.path.clone());
             });
@@ -184,22 +180,21 @@ impl eframe::App for TemplateApp {
             });
         });
 
+        if let Some(sus_data) = data_tuple {
+            let line_manager = LineManager::new(to_plot_points(&sus_data));
+            self.telem_data.set("suspension_line".to_string(), TelemData::LineManager(line_manager));
+            self.sus_view = View::new();
+            let suspension_graph = SuspensionGraph::init();
+            let suspension_graph_box = Box::new(suspension_graph);
+            self.sus_view.add_graph(suspension_graph_box);
+            //self.count_bottom_outs();
+        }
+
         egui::CentralPanel::default().show(ctx, |ui| {
-            // The central panel the region left after adding TopPanel's and SidePanel's
-            let width = ctx.available_rect().width().floor();
-            
-            // let bottom_out_points: PlotPoints = (0..2).map(|i| {
-            //     [i as f64 * self.time as f64 * self.data.data.len() as f64 * TIME_STEP * self.value, self.bottom_out_threshold]
-            // }).collect();
-            // let bottom_out_line = Line::new(bottom_out_points);
+            //let mut metadata = HashMap::<String, f64>::new();
+            //metadata.insert("bottom_out_threshold".to_string(), self.bottom_out_threshold);
 
-            let window_info = frame.info().clone();
-            
-            let mut metadata = HashMap::<String, f64>::new();
-            metadata.insert("bottom_out_threshold".to_string(), self.bottom_out_threshold);
-
-            self.suspension_graph.set_metadata(&metadata);
-            self.suspension_graph.update(ctx, ui);
+            self.sus_view.draw(&self.telem_data, ctx, ui);
 
             ui.heading("eframe template");
             ui.hyperlink("https://github.com/emilk/eframe_template");

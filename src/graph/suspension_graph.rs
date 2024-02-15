@@ -3,48 +3,29 @@ use std::collections::HashMap;
 use egui::{Context, Id, Ui, Vec2b, WidgetText};
 use egui_plot::{Line, Plot, PlotBounds, PlotMemory, PlotPoint, PlotPoints};
 
-use crate::graph::{self, line_manager::LineManager, to_plot_points, Graph, ToPlotPoint};
+use crate::{data::{Data, TelemData}, graph::{self, line_manager::{self, LineManager}, to_plot_points, Graph, ToPlotPoint}};
 
-pub struct SuspensionGraph {
-    points: Vec<PlotPoint>,
-    line_manager: LineManager,
-    travel_line: Line,
-    bottom_out_threshold: f64,
-}
+/// A graph that can be used to visualise suspension data
+pub struct SuspensionGraph {}
 
-impl SuspensionGraph {
-    pub fn blank() -> Self {
-        SuspensionGraph {
-            points: Vec::new(),
-            line_manager: LineManager::new(&Vec::new()),
-            travel_line: Line::new(Vec::new()),
-            bottom_out_threshold: 0.0,
+impl<'a> Graph<'a> for SuspensionGraph {
+    fn init() -> SuspensionGraph where Self: Sized {
+        SuspensionGraph {}
+    }
+
+    fn draw(&self, data: &Data, ctx: &Context, ui: &mut Ui) {
+        let line_manager_res = data.get("suspension_line".to_string());
+        let bottom_out_threshold_res = data.get("bottom_out_threshold".to_string());
+        
+        let mut line_manager = None;
+        if let Ok(TelemData::LineManager(lm)) = line_manager_res {
+            line_manager = Some(lm);
         }
-    }
-}
-
-impl Graph for SuspensionGraph {
-    fn init(&mut self) {}
-
-    fn set_data<T: ToPlotPoint>(&mut self, data: &Vec<T>) {
-        println!("Data len: {}", data.len());
-        self.points = to_plot_points(data);
-        self.travel_line = Line::new(Vec::new());
-        //self.travel_line = Line::new(PlotPoints::Owned(self.points));
-
-        self.line_manager = LineManager::new(&self.points);
-    }
-
-    fn set_metadata(&mut self, metadata: &HashMap<String, f64>) {
-        self.bottom_out_threshold = *metadata.get("bottom_out_threshold").expect("Metadata is missing field bottom_out_threshold");
-    }
-
-    fn update(&mut self, ctx: &Context, ui: &mut Ui) {
-        let bottom_out_points: PlotPoints = (0..2).map(|i| {
-                [(i * self.points.len()) as f64, self.bottom_out_threshold]
-            }).collect();
-
-        let bottom_out_line = Line::new(bottom_out_points);
+        
+        let mut bottom_out_threshold = 0.0;
+        if let Ok(TelemData::F64(bot)) = bottom_out_threshold_res {
+            bottom_out_threshold = *bot;
+        }
 
         let axis_bools = Vec2b::new(true, false);
 
@@ -55,6 +36,7 @@ impl Graph for SuspensionGraph {
             .allow_boxed_zoom(false)
             .allow_drag(axis_bools)
             .allow_zoom(axis_bools)
+            .show_grid(false)
             .include_y(0.0)
             .include_y(60.0);
 
@@ -66,13 +48,21 @@ impl Graph for SuspensionGraph {
             extremes = [bounds.min()[0], bounds.max()[0]];
         }
 
-        let temp_travel_line = self.line_manager.gen_line(extremes[0], extremes[1]);
+        let bottom_out_points: PlotPoints = (0..2).map(|i| {
+            [i as f64 * extremes[1], bottom_out_threshold]
+        }).collect();
+
+        let bottom_out_line = Line::new(bottom_out_points);
+
+        let mut travel_line = None;
+        if let Some(lm) = line_manager {
+            travel_line = lm.gen_line(extremes[0], extremes[1]);
+        }
 
         plot.show(ui, |plot_ui| {
-            if let Some(travel_line) = temp_travel_line {
-                plot_ui.line(travel_line);
+            if let Some(travel_line_u) = travel_line {
+                plot_ui.line(travel_line_u);
             }
-            //plot_ui.line(temp_travel_line);
             plot_ui.line(bottom_out_line);  
         });
     }

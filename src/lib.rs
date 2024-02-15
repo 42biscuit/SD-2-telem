@@ -3,8 +3,9 @@
 mod app;
 mod big_array;
 mod data;
-pub use app::TemplateApp;
+pub use app::TelemApp;
 pub use data::Buff;
 pub use data::BUFF_SIZE;
 
+mod view;
 mod graph;

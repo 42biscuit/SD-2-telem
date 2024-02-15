@@ -1,18 +1,35 @@
 use egui_plot::{Line, PlotPoint, PlotPoints};
-use tracing_subscriber::filter::combinator::Or;
 
 const MAX_POINTS: usize = 1024;
 
+/// Represents a single level of detail, and should only be used as part of a LineManager. 
+/// It stores a sampled copy of the original data at a lower resolution.
 pub struct LineInstance {
+    /// How often the instance has sampled from the original data, as an index of 2, (e.g. a period of 3 
+    /// means it has taken every 8th point, since 2^3=8)
     pub period: u32,
+    /// The sampled data
     pub data: Vec<PlotPoint>,
 }
 
+/// Stores a list of data points at multiple resolutions
 pub struct LineManager {
+    /// A vector containing the same line at different levels of detail. 
+    /// Index 0 is original resolution, index 1 is half resolution (every 2nd point), etc.
     instances: Vec<LineInstance>,
 }
 
 impl LineInstance {
+    /// Find the start and end indices that fill a data range
+    /// 
+    /// # Arguments
+    /// 
+    /// `min`: The low end of the range  
+    /// `max`: The high end of the range
+    /// 
+    /// # Returns
+    /// 
+    /// A 2-tuple containing the start and end indices
     pub fn get_points_in_range(&self, min: f64, max: f64) -> (usize, usize) {
         if self.data.len() == 0 {
             return (0, 0);
@@ -38,7 +55,16 @@ impl LineInstance {
 }
 
 impl LineManager {
-    pub fn new(data: &Vec<PlotPoint>) -> LineManager {
+    /// Create a new LineManager
+    /// 
+    /// # Arguments
+    /// 
+    /// `data`: A vector containing the points to be plotted
+    /// 
+    /// # Returns
+    /// 
+    /// A new LineManager
+    pub fn new(data: Vec<PlotPoint>) -> LineManager {
         let data_len = data.len();
         let max_period_f = (data_len as f64 / MAX_POINTS as f64).log2();
         let max_period = u32::max(max_period_f as u32 + 2, 1);
@@ -65,6 +91,17 @@ impl LineManager {
         }
     }
 
+    /// Generate a line at the appropriate resolution
+    /// 
+    /// # Arguments
+    /// 
+    /// `min`: The lowest visible value  
+    /// `max`: The highest visible value
+    /// 
+    /// # Returns
+    /// 
+    /// Some(Line) if a line could be created  
+    /// None otherwise
     pub fn gen_line(&self, min: f64, max: f64) -> Option<Line> {
         for i in &self.instances {
             let indices = i.get_points_in_range(min, max);
@@ -84,5 +121,18 @@ impl LineManager {
         }
 
         None
+    }
+
+    /// Get the maximum X co-ordinate of a line
+    pub fn max_x(&self) -> f64 {
+        if self.instances.len() == 0 {
+            return 0.0;
+        }
+
+        if let Some(last_point) = self.instances[0].data.last() {
+            return last_point.x;
+        }
+
+        0.0
     }
 }

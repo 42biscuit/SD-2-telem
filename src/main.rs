@@ -18,11 +18,11 @@ fn main() -> eframe::Result<()> {
     };
 
     eframe::run_native(
-        "eframe template",
+        "SD2 Telemetry Software",
         native_options,
         Box::new(|cc| {
             cc.egui_ctx.set_style(style);
-            Box::new(eframe_template::TemplateApp::new(cc))
+            Box::new(sd2_telem::TelemApp::new(cc))
         }),
     )
 }

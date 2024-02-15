@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::fs::File;
 use std::io;
 use std::io::BufReader;
@@ -5,7 +6,48 @@ use std::io::Lines;
 use std::io::prelude::*;
 use std::io::SeekFrom;
 pub const BUFF_SIZE: usize = 4500;
-pub const frequency: u16 = 40; 
+pub const frequency: u16 = 40;
+
+pub enum TelemData {
+    U32(u32),
+    U32V(Vec<u32>),
+    U32P((u32, u32)),
+    U32PV(Vec<(u32, u32)>),
+    F64(f64),
+    F64V(Vec<f64>),
+    PlotPointV(Vec<PlotPoint>),
+    LineManager(LineManager),
+}
+
+pub struct Data {
+    pub fields: HashMap<String, TelemData>
+}
+
+impl Data {
+    pub fn new() -> Data {
+        Data {
+            fields: HashMap::new()
+        }
+    }
+
+    pub fn set(&mut self, field: String, value: TelemData) -> Result<(), &str> {
+        if self.fields.get(&field).is_some() {
+            return Err("Field already exists");
+        }
+
+        self.fields.insert(field, value);
+
+        Ok(())
+    }
+
+    pub fn get(&self, field: String) -> Result<&TelemData, &str> {
+        if let Some(field_boxed) = self.fields.get(&field) {
+            return Ok(field_boxed);
+        }
+
+        Err("Field does not exist")
+    }
+}
 
 #[derive(Clone)]
 pub struct Buff{
@@ -60,6 +102,7 @@ use std::ops::{Bound, RangeBounds};
 
 use egui_plot::PlotPoint;
 
+use crate::graph::line_manager::LineManager;
 use crate::graph::ToPlotPoint;
 
 trait StringUtils {
