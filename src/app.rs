@@ -1,5 +1,7 @@
+
 use crate::graph::Graph;
 use crate::graph::suspension_graph::{SuspensionGraph, self};
+use crate::graph::bar_graph;
 use crate::{Buff, BUFF_SIZE};
 use egui_plot::{Line, Plot, PlotPoints, PlotPoint};
 use rfd::FileDialog;

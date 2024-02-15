@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use egui::{Context, Ui};
 use egui_plot::PlotPoint;
-
+pub mod bar_graph;
 pub mod suspension_graph;
 pub mod line_manager;
 

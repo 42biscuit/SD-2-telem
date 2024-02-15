@@ -1,11 +1,11 @@
 use std::fs::File;
 use std::io;
-use std::io::BufReader;
-use std::io::Lines;
 use std::io::prelude::*;
-use std::io::SeekFrom;
+use crate::graph::bar_graph;
 pub const BUFF_SIZE: usize = 4500;
 pub const frequency: u16 = 40; 
+pub const MAX_DATA_VALUE:f64 = 60.0;
+
 
 #[derive(Clone)]
 pub struct Buff{
@@ -17,7 +17,7 @@ impl ToPlotPoint for (u32, u32) {
     fn to_plot_point(&self) -> PlotPoint {
         PlotPoint {
             x: self.0 as f64,
-            y: (self.1 as f64) / (1024.0 / 60.0),
+            y: (self.1 as f64) / (1024.0 / MAX_DATA_VALUE),
         }
     }
 }
@@ -50,9 +50,7 @@ impl Buff{
                 None => break,
             }
         }
-    }
-    pub fn updateStackBuff(&mut self){
-
+        let _ = bar_graph::BarPoints::new(self.data.clone());
     }
 }
 
