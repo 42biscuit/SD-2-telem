@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-
+use crate::graph::bar_graph;
 use egui::{Context, Id, Ui, Vec2b, WidgetText};
 use egui_plot::{Line, Plot, PlotBounds, PlotMemory, PlotPoint, PlotPoints};
 
@@ -31,7 +31,6 @@ impl Graph for SuspensionGraph {
         self.points = to_plot_points(data);
         self.travel_line = Line::new(Vec::new());
         //self.travel_line = Line::new(PlotPoints::Owned(self.points));
-
         self.line_manager = LineManager::new(&self.points);
     }
 
@@ -46,7 +45,8 @@ impl Graph for SuspensionGraph {
 
         let bottom_out_line = Line::new(bottom_out_points);
 
-        let axis_bools = Vec2b::new(true, false);
+        let axis_bools_drag = Vec2b::new(true, false);
+        let axis_bools_auto_zoom = Vec2b::new(false,false);
 
         let plot = Plot::new("suspension")
             .id(Id::new("suspension"))
