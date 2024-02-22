@@ -92,7 +92,6 @@ impl Buff{
                 None => break,
             }
         }
-        let _ = bar_graph::BarPoints::new(self.data.clone());
     }
 }
 

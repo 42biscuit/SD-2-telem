@@ -1,11 +1,12 @@
 
 use crate::data::{Data, TelemData};
+use crate::graph::bar_graph::BarPoints;
 use crate::graph::line_manager::LineManager;
 use crate::graph::{line_manager, to_plot_points, Graph};
 use crate::graph::suspension_graph::{SuspensionGraph, self};
 use crate::view::View;
 use crate::{data, Buff, BUFF_SIZE};
-use egui_plot::{Line, Plot, PlotPoints, PlotPoint};
+use egui_plot::{BarChart, Line, Plot, PlotPoint, PlotPoints};
 use rfd::FileDialog;
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -31,6 +32,8 @@ pub struct TelemApp<'a> {
     telem_data: Data,
     #[serde(skip)]
     sus_view: View<'a>,
+    #[serde(skip)]
+    histogram_data: BarPoints,
 }
 
 impl<'a> Default for TelemApp<'a> {
@@ -47,6 +50,7 @@ impl<'a> Default for TelemApp<'a> {
             bottom_outs: 0,
             telem_data: Data::new(),
             sus_view: View::new(),
+            histogram_data: BarPoints::new(),
         }
     }
 }
@@ -111,12 +115,6 @@ impl<'a> eframe::App for TelemApp<'a> {
                 ui.label("path to data.");
                 ui.text_edit_singleline(&mut self.path);
             });
-            if ui.button("Load").clicked() {
-                // self.data.load(self.path.to_string());
-                // self.suspension_graph.set_data(&self.data.data);
-                // self.count_bottom_outs();
-                // println!("{}", &self.path);
-            }
             
             ui.horizontal(|ui| {
                 if ui.button("Select File").clicked() {
@@ -137,10 +135,8 @@ impl<'a> eframe::App for TelemApp<'a> {
                         data_tuple = Some(self.data.data.iter().enumerate().map(|(i, d)| {
                             (i as u32, *d)
                         }).collect());
-
-                        //println!("{}, {}", self.data.data.len(), file_path.to_str().unwrap());
-
-                        //println!("{}, {}", self.data.data.len(), file_path.to_str().unwrap());
+                        self.histogram_data.update(self.data.data.clone());
+                        println!("{:#?}",self.histogram_data.data);
                     }
 
                     //println!("{}", self.path);
@@ -189,7 +185,12 @@ impl<'a> eframe::App for TelemApp<'a> {
             let suspension_graph = SuspensionGraph::init();
             let suspension_graph_box = Box::new(suspension_graph);
             self.sus_view.add_graph(suspension_graph_box);
-            //self.count_bottom_outs();
+            self.count_bottom_outs();
+
+            let histogram =  Box::new(BarPoints::init());
+
+            self.sus_view.add_bar_chart(histogram);
+
         }
 
         egui::CentralPanel::default().show(ctx, |ui| {
@@ -218,8 +219,3 @@ impl<'a> eframe::App for TelemApp<'a> {
     }
 }
 
-/*impl FromIterator<[f32;2]> for egui::plot::PlotPoints{
-    fn from_iter<T: IntoIterator<Item = [f32; 2]>>(iter: T) -> Self {
-        Self::Owned(iter.into_iter().map(|point| point.into()).collect())
-    }
-}*/
