@@ -6,6 +6,7 @@ use crate::graph::bar_graph;
 pub const BUFF_SIZE: usize = 4500;
 pub const frequency: u16 = 40;
 
+/// 
 pub enum TelemData {
     U32(u32),
     U32V(Vec<u32>),
