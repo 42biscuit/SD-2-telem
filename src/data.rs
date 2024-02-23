@@ -45,6 +45,16 @@ impl Data {
 
         Err("Field does not exist")
     }
+
+    pub fn set_count(&mut self, field: String, data: &Vec<u32>, bin_count: usize, max_val: f64, max_val_norm: f64) -> Result<(), &str> {
+        let mut data_count = vec![0u32; bin_count];
+        for point in data.iter(){
+            let index = ((*point as f64/(max_val / max_val_norm)) * (bin_count as f64/max_val_norm)).round() as usize;
+            data_count[index-1] += 1;
+        }
+
+        self.set(field, TelemData::U32V(data_count))
+    }
 }
 
 pub const MAX_DATA_VALUE:f64 = 60.0;

@@ -32,8 +32,6 @@ pub struct TelemApp<'a> {
     telem_data: Data,
     #[serde(skip)]
     sus_view: View<'a>,
-    #[serde(skip)]
-    histogram_data: BarPoints,
 }
 
 impl<'a> Default for TelemApp<'a> {
@@ -50,7 +48,6 @@ impl<'a> Default for TelemApp<'a> {
             bottom_outs: 0,
             telem_data: Data::new(),
             sus_view: View::new(),
-            histogram_data: BarPoints::new(),
         }
     }
 }
@@ -135,8 +132,9 @@ impl<'a> eframe::App for TelemApp<'a> {
                         data_tuple = Some(self.data.data.iter().enumerate().map(|(i, d)| {
                             (i as u32, *d)
                         }).collect());
-                        self.histogram_data.update(self.data.data.clone());
-                        println!("{:#?}",self.histogram_data.data);
+
+                        //self.histogram_data.update(self.data.data.clone());
+                        //println!("{:#?}",self.histogram_data.data);
                     }
 
                     //println!("{}", self.path);
@@ -181,16 +179,18 @@ impl<'a> eframe::App for TelemApp<'a> {
         if let Some(sus_data) = data_tuple {
             let line_manager = LineManager::new(to_plot_points(&sus_data));
             self.telem_data.set("suspension_line".to_string(), TelemData::LineManager(line_manager));
+            self.telem_data.set_count("suspension_counts".to_string(), &self.data.data, 15, 1024.0, 60.0);
             self.sus_view = View::new();
+            
             let suspension_graph = SuspensionGraph::init();
+            let histogram = BarPoints::init();
             let suspension_graph_box = Box::new(suspension_graph);
+            let histogram_box = Box::new(histogram);
+
             self.sus_view.add_graph(suspension_graph_box);
+            self.sus_view.add_graph(histogram_box);
+            
             self.count_bottom_outs();
-
-            let histogram =  Box::new(BarPoints::init());
-
-            self.sus_view.add_bar_chart(histogram);
-
         }
 
         egui::CentralPanel::default().show(ctx, |ui| {
