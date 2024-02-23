@@ -1,3 +1,4 @@
+use eframe::glow::PROGRAM_POINT_SIZE;
 use egui_plot::{Line, PlotPoint, PlotPoints};
 
 const MAX_POINTS: usize = 1024;
@@ -77,13 +78,16 @@ impl LineManager {
                 data: Vec::with_capacity(2usize.pow(i) * MAX_POINTS),
             })
         }
-
         for (i, point) in data.iter().enumerate() {
             for j in 0..max_period {
                 if i % 2usize.pow(j) == 0 {
                     instances[j as usize].data.push(*point);
                 }
             }
+        }
+        println!("data len {}", data.len());
+        for i in instances.iter() {
+            println!("{:?}", i.data.len());
         }
 
         LineManager {

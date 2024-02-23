@@ -2,7 +2,7 @@
 use crate::data::{Data, TelemData};
 use crate::graph::bar_graph::BarPoints;
 use crate::graph::line_manager::LineManager;
-use crate::graph::{line_manager, to_plot_points, Graph};
+use crate::graph::{to_plot_points, Graph};
 use crate::graph::suspension_graph::{SuspensionGraph, self};
 use crate::view::View;
 use crate::{data, Buff, BUFF_SIZE};

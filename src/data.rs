@@ -6,7 +6,7 @@ use crate::graph::bar_graph;
 pub const BUFF_SIZE: usize = 4500;
 pub const frequency: u16 = 40;
 
-/// 
+/// allows more polymorphic approach to storing different data typed to Data
 pub enum TelemData {
     U32(u32),
     U32V(Vec<u32>),
@@ -17,12 +17,16 @@ pub enum TelemData {
     PlotPointV(Vec<PlotPoint>),
     LineManager(LineManager),
 }
+/// Hash map containing multipil data entries 
 
 pub struct Data {
+    /// fields, hashmap holding all telem data
     pub fields: HashMap<String, TelemData>
 }
 
+
 impl Data {
+    ///new empty Data
     pub fn new() -> Data {
         Data {
             fields: HashMap::new()
@@ -39,6 +43,31 @@ impl Data {
         Ok(())
     }
 
+
+    ///  returns average value of all points in the given data field
+    ///  # Arguments
+    /// * `field` - the string data field to calculate the average value for
+    pub fn data_average(&self, field: String) -> f32{
+        let mut average = 0.0;
+        let data_res = self.get(field);
+
+        let mut data = None;
+
+        if let Ok(TelemData::U32V( t_data )) = data_res
+        {
+            data = Some(t_data);
+        }
+
+        for (size, point) in data.unwrap().iter().enumerate(){
+            average += (*point as f32 - average) / size as f32;
+        }
+
+        average
+        
+    }
+
+    
+
     pub fn get(&self, field: String) -> Result<&TelemData, &str> {
         if let Some(field_boxed) = self.fields.get(&field) {
             return Ok(field_boxed);
@@ -47,6 +76,9 @@ impl Data {
         Err("Field does not exist")
     }
 
+    /// sets sorts data in set Bins 
+    /// # Returns
+    /// sorted data
     pub fn set_count(&mut self, field: String, data: &Vec<u32>, bin_count: usize, max_val: f64, max_val_norm: f64) -> Result<(), &str> {
         let mut data_count = vec![0u32; bin_count];
         for point in data.iter(){
@@ -61,6 +93,8 @@ impl Data {
 pub const MAX_DATA_VALUE:f64 = 60.0;
 
 #[derive(Clone)]
+
+
 pub struct Buff{
     pub data:Vec<u32>,
     stackBuff:[u16;BUFF_SIZE],

@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 
 use egui::{Context, Ui};
 use egui_plot::PlotPoint;
