@@ -2,9 +2,9 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io;
 use std::io::prelude::*;
-use crate::graph::bar_graph;
+
 pub const BUFF_SIZE: usize = 4500;
-pub const frequency: u16 = 40;
+pub const _frequency: u16 = 40;
 
 /// allows more polymorphic approach to storing different data typed to Data
 pub enum TelemData {

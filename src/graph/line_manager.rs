@@ -1,4 +1,4 @@
-use eframe::glow::PROGRAM_POINT_SIZE;
+
 use egui_plot::{Line, PlotPoint, PlotPoints};
 
 const MAX_POINTS: usize = 1024;

@@ -22,7 +22,7 @@ pub trait ToPlotPoint {
 /// 
 /// A vector of PlotPoints
 pub fn to_plot_points<T: ToPlotPoint>(data: &Vec<T>) -> Vec<PlotPoint> where T: Sized {
-    data.iter().enumerate().map(|(i, d)| {
+    data.iter().enumerate().map(|(_i, d)| {
         d.to_plot_point()
     }).collect()
 }

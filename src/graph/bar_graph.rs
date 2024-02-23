@@ -1,7 +1,7 @@
-use crate::data::{TelemData, MAX_DATA_VALUE};
-use egui_plot::{Bar, BarChart, PlotItem};
-use egui::{Context, Id, Ui, Vec2b, WidgetText};
-use egui_plot::{Line, Plot, PlotBounds, PlotMemory, PlotPoint, PlotPoints};
+use crate::data::TelemData;
+use egui_plot::{Bar, BarChart};
+use egui::Id;
+use egui_plot::Plot;
 
 use super::Graph;
 pub const NUMBER_BARS:usize = 15;
@@ -26,7 +26,7 @@ impl BarPoints{
 }
 
 impl<'a> Graph<'a> for BarPoints{
-    fn draw(&self, data: &crate::data::Data, ctx: &egui::Context, ui: &mut egui::Ui) {
+    fn draw(&self, data: &crate::data::Data, _ctx: &egui::Context, ui: &mut egui::Ui) {
         let data_count_res = data.get("suspension_counts".to_string());
         let data_count;
         if let Ok(TelemData::U32V(counts)) = data_count_res {

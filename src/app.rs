@@ -3,16 +3,14 @@ use crate::data::{Data, TelemData};
 use crate::graph::bar_graph::BarPoints;
 use crate::graph::line_manager::LineManager;
 use crate::graph::{to_plot_points, Graph};
-use crate::graph::suspension_graph::{SuspensionGraph, self};
+use crate::graph::suspension_graph::SuspensionGraph;
 use crate::view::View;
-use crate::{data, Buff, BUFF_SIZE};
-use egui_plot::{BarChart, Line, Plot, PlotPoint, PlotPoints};
-use rfd::FileDialog;
-use std::collections::HashMap;
-use std::path::PathBuf;
-use std::{env, fs};
+use crate::Buff;
 
-const TIME_STEP: f64 = 0.1;
+use rfd::FileDialog;
+
+use std::path::PathBuf;
+use std::env;
 
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[derive(serde::Deserialize, serde::Serialize)]
@@ -88,7 +86,7 @@ impl<'a> eframe::App for TelemApp<'a> {
     }
 
     /// Called each time the UI needs repainting, which may be many times per second.
-    fn update(&mut self, ctx: &eframe::egui::Context, frame: &mut eframe::Frame) {
+    fn update(&mut self, ctx: &eframe::egui::Context, _frame: &mut eframe::Frame) {
         let mut data_tuple: Option<Vec<(u32, u32)>> = None;
 
         #[cfg(not(target_arch = "wasm32"))] // no File->Quit on web pages!
@@ -157,7 +155,7 @@ impl<'a> eframe::App for TelemApp<'a> {
                 ui.label("Bottom threshhold: ");
                 ui.add(egui::Slider::new(&mut self.bottom_out_threshold, 0.0..=60.0).text("Threshold"));
             });
-            if (ui.button("Recalculate").clicked()) {
+            if ui.button("Recalculate").clicked() {
                 self.count_bottom_outs();
             }
 

@@ -1,9 +1,9 @@
-use std::collections::HashMap;
-use crate::graph::bar_graph;
-use egui::{Context, Id, Ui, Vec2b, WidgetText};
-use egui_plot::{Line, Plot, PlotBounds, PlotMemory, PlotPoint, PlotPoints};
 
-use crate::{data::{Data, TelemData}, graph::{self, line_manager::{self, LineManager}, to_plot_points, Graph, ToPlotPoint}};
+
+use egui::{Context, Id, Ui, Vec2b};
+use egui_plot::{Line, Plot, PlotMemory, PlotPoints};
+
+use crate::{data::{Data, TelemData}, graph::Graph};
 
 /// A graph that can be used to visualise suspension data
 pub struct SuspensionGraph {}
@@ -28,7 +28,7 @@ impl<'a> Graph<'a> for SuspensionGraph {
         }
 
         let axis_bools_drag = Vec2b::new(true, false);
-        let axis_bools_auto_zoom = Vec2b::new(false,false);
+        let _axis_bools_auto_zoom = Vec2b::new(false,false);
 
         let plot = Plot::new("suspension")
             .id(Id::new("suspension"))
