@@ -22,10 +22,6 @@ impl<'a> View<'a> {
         self.graphs.push(graph);
     }
     
-    pub fn add_bar_chart(&mut self,chart : Box<dyn Graph<'a> + 'a>){
-        self.graphs.push(chart);
-    }
-    
     pub fn draw(&self, data: &Data, ctx: &Context, ui: &mut Ui) {
         for graph in &self.graphs {
             graph.draw(data, ctx, ui);
