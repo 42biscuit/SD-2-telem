@@ -3,7 +3,7 @@
 use egui::{Context, Id, Ui, Vec2b};
 use egui_plot::{Line, Plot, PlotMemory, PlotPoints};
 
-use crate::{data::{Data, TelemData}, graph::Graph};
+use crate::{data::{Data, TelemData, FREQUENCY}, graph::Graph};
 
 /// A graph that can be used to visualise suspension data
 pub struct SuspensionGraph {}
@@ -57,7 +57,7 @@ impl<'a> Graph<'a> for SuspensionGraph {
 
         let mut travel_line = None;
         if let Some(lm) = line_manager {
-            travel_line = lm.gen_line(extremes[0], extremes[1]);
+            travel_line = lm.gen_line(extremes[0] * FREQUENCY as f64, extremes[1]* FREQUENCY as f64);
         }
 
         plot.show(ui, |plot_ui| {

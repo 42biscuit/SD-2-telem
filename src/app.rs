@@ -1,5 +1,5 @@
 
-use crate::data::{Data, TelemData};
+use crate::data::{Data, TelemData, FREQUENCY};
 use crate::graph::bar_graph::BarPoints;
 use crate::graph::line_manager::LineManager;
 use crate::graph::{to_plot_points, Graph};
@@ -87,7 +87,7 @@ impl<'a> eframe::App for TelemApp<'a> {
 
     /// Called each time the UI needs repainting, which may be many times per second.
     fn update(&mut self, ctx: &eframe::egui::Context, _frame: &mut eframe::Frame) {
-        let mut data_tuple: Option<Vec<(u32, u32)>> = None;
+        let mut data_tuple: Option<Vec<(f32, f32)>> = None;
 
         #[cfg(not(target_arch = "wasm32"))] // no File->Quit on web pages!
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
@@ -128,7 +128,7 @@ impl<'a> eframe::App for TelemApp<'a> {
                         self.data.load(self.path.to_string());
                         
                         data_tuple = Some(self.data.data.iter().enumerate().map(|(i, d)| {
-                            (i as u32, *d)
+                            (i as f32 / FREQUENCY as f32, *d  as f32)
                         }).collect());
 
                         //self.histogram_data.update(self.data.data.clone());

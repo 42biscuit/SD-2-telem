@@ -1,6 +1,8 @@
 
 use egui_plot::{Line, PlotPoint, PlotPoints};
 
+use crate::data::FREQUENCY;
+
 const MAX_POINTS: usize = 1024;
 
 /// Represents a single level of detail, and should only be used as part of a LineManager. 

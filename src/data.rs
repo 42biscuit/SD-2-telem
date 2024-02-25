@@ -4,7 +4,7 @@ use std::io;
 use std::io::prelude::*;
 
 pub const BUFF_SIZE: usize = 4500;
-pub const _frequency: u16 = 40;
+pub const FREQUENCY: u16 = 40;
 
 /// allows more polymorphic approach to storing different data typed to Data
 pub enum TelemData {
@@ -101,6 +101,15 @@ pub struct Buff{
 }
 
 impl ToPlotPoint for (u32, u32) {
+    fn to_plot_point(&self) -> PlotPoint {
+        PlotPoint {
+            x: self.0 as f64,
+            y: (self.1 as f64) / (1024.0 / MAX_DATA_VALUE),
+        }
+    }
+}
+
+impl ToPlotPoint for (f32, f32) {
     fn to_plot_point(&self) -> PlotPoint {
         PlotPoint {
             x: self.0 as f64,
