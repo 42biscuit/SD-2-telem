@@ -87,7 +87,7 @@ impl<'a> eframe::App for TelemApp<'a> {
 
     /// Called each time the UI needs repainting, which may be many times per second.
     fn update(&mut self, ctx: &eframe::egui::Context, _frame: &mut eframe::Frame) {
-        let mut data_tuple: Option<Vec<(f32, f32)>> = None;
+        let mut loaded_data = false;
 
         #[cfg(not(target_arch = "wasm32"))] // no File->Quit on web pages!
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
@@ -126,10 +126,8 @@ impl<'a> eframe::App for TelemApp<'a> {
                     if let Some(file_path) = file {
                         self.path = file_path.to_str().unwrap().to_string();
                         self.data.load(self.path.to_string());
-                        
-                        data_tuple = Some(self.data.data.iter().enumerate().map(|(i, d)| {
-                            (i as f32 / FREQUENCY as f32, *d  as f32)
-                        }).collect());
+
+                        loaded_data = true;
 
                         //self.histogram_data.update(self.data.data.clone());
                         //println!("{:#?}",self.histogram_data.data);
@@ -174,8 +172,11 @@ impl<'a> eframe::App for TelemApp<'a> {
             });
         });
 
-        if let Some(sus_data) = data_tuple {
-            let line_manager = LineManager::new(to_plot_points(&sus_data));
+        if loaded_data {
+            let sus_data_f32: Vec<f32> = (&self.data.data).iter().map(|d| { *d as f32 }).collect();
+            let sus_data_f32_enum = self.telem_data.enumerated_with_transform(&sus_data_f32, 1.0 / FREQUENCY as f32, 0.0);
+            let line_manager = LineManager::new(to_plot_points(&sus_data_f32_enum));
+            self.telem_data.set("suspension_data_raw".to_string(), TelemData::F32V(sus_data_f32));
             self.telem_data.set("suspension_line".to_string(), TelemData::LineManager(line_manager));
             self.telem_data.set_count("suspension_counts".to_string(), &self.data.data, 15, 1024.0, 60.0);
             self.sus_view = View::new();
@@ -189,6 +190,8 @@ impl<'a> eframe::App for TelemApp<'a> {
             self.sus_view.add_graph(histogram_box);
             
             self.count_bottom_outs();
+
+            loaded_data = false;
         }
 
         egui::CentralPanel::default().show(ctx, |ui| {

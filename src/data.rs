@@ -12,6 +12,8 @@ pub enum TelemData {
     U32V(Vec<u32>),
     U32P((u32, u32)),
     U32PV(Vec<(u32, u32)>),
+    F32V(Vec<f32>),
+    F32PV(Vec<(f32, f32)>),
     F64(f64),
     F64V(Vec<f64>),
     PlotPointV(Vec<PlotPoint>),
@@ -66,14 +68,28 @@ impl Data {
         
     }
 
-    
-
     pub fn get(&self, field: String) -> Result<&TelemData, &str> {
         if let Some(field_boxed) = self.fields.get(&field) {
             return Ok(field_boxed);
         }
 
         Err("Field does not exist")
+    }
+
+    pub fn get_u32v(&self, field: String) -> &Vec<u32> {
+        if let Ok(TelemData::U32V(res)) = self.get(field) {
+            return &res;
+        }
+
+        panic!("Field does not exist");
+    }
+
+    pub fn get_f64pv(&self, field: String) -> &Vec<(f32, f32)> {
+        if let Ok(TelemData::F32PV(res)) = self.get(field) {
+            return &res;
+        }
+
+        panic!("Field does not exist");
     }
 
     /// sets sorts data in set Bins 
@@ -87,6 +103,16 @@ impl Data {
         }
 
         self.set(field, TelemData::U32V(data_count))
+    }
+
+    pub fn set_remapped_1d<T>(&mut self, field: String, data: &Vec<T>, scale: f64, offset: f64) -> Result<(), &str> {
+        Ok(())
+    }
+    
+    pub fn enumerated_with_transform<T: Copy>(&mut self, data: &Vec<T>, scale: f32, offset: f32) -> Vec<(f32, T)> {
+        data.iter().enumerate().map(|(i, d)| {
+            (i as f32 * scale + offset, *d)
+        }).collect()
     }
 }
 
@@ -149,7 +175,7 @@ impl Buff{
     }
 }
 
-use std::ops::{Bound, RangeBounds};
+use std::ops::{Add, Bound, RangeBounds};
 
 use egui_plot::PlotPoint;
 
