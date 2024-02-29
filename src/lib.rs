@@ -3,6 +3,7 @@
 mod app;
 mod data;
 pub mod graph;
+mod config_info;
 pub use app::TelemApp;
 pub use data::Buff;
 pub use data::BUFF_SIZE;

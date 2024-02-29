@@ -1,3 +1,5 @@
+
+use crate::config_info::{self, ConfigInfo};
 use crate::data::{Data, TelemData, FREQUENCY};
 use crate::graph::bar_graph::BarPoints;
 use crate::graph::line_manager::LineManager;
@@ -23,17 +25,30 @@ pub struct TelemApp<'a> {
     // this how you opt-out of serialization of a member
     #[serde(skip)]
     value: f64,
+    #[serde(skip)]
+    stroke_len_str: String,
+    #[serde(skip)]
+    low_adj_str: String,
+    #[serde(skip)]
+    high_adj_str: String,
     bottom_out_threshold: f64,
     bottom_outs: u32,
     #[serde(skip)]
     telem_data: Data,
     #[serde(skip)]
     sus_view: View<'a>,
+    #[serde(skip)]
+    config: ConfigInfo,
+    #[serde(skip)]
+    show_unmapped_data: bool,
 }
 
 impl<'a> Default for TelemApp<'a> {
     fn default() -> Self {
         let data = Buff::new();
+
+        let mut config = ConfigInfo::load();
+        let curr_remap_info = config.current_sus_remap_info();
 
         Self {
             // Example stuff:
@@ -41,10 +56,15 @@ impl<'a> Default for TelemApp<'a> {
             path: "Hello World!".to_owned(),
             data,
             value: 1.0,
+            stroke_len_str: curr_remap_info.stroke_len.to_string(),
+            low_adj_str: curr_remap_info.inverse_without_stroke_len_scale(config_info::DEFAULT_SUS_MIN).to_string(),
+            high_adj_str: curr_remap_info.inverse_without_stroke_len_scale(config_info::DEFAULT_SUS_MAX).to_string(),
             bottom_out_threshold: 0.0,
             bottom_outs: 0,
             telem_data: Data::new(),
             sus_view: View::new(),
+            config,
+            show_unmapped_data: false,
         }
     }
 }
@@ -76,17 +96,55 @@ impl<'a> TelemApp<'a> {
             }
         }
     }
+
+    pub fn reset_data(&mut self) {
+        if self.data.data.is_empty() {
+            return;
+        }
+
+        self.telem_data.clear();
+
+        let mut sus_data_f32: Vec<f32> = self.data.data.iter().map(|d| { *d as f32 }).collect();
+
+        if !self.show_unmapped_data {
+            let cur_sus_remap_info = self.config.current_sus_remap_info();
+
+            sus_data_f32 = self.telem_data.remapped_1d_with_clamp(&sus_data_f32, cur_sus_remap_info, 0.0, cur_sus_remap_info.stroke_len);
+            self.telem_data.set_count("suspension_counts".to_string(), &sus_data_f32, 15, cur_sus_remap_info.stroke_len as f64);
+            self.telem_data.set("stroke_len".to_string(), TelemData::F32(cur_sus_remap_info.stroke_len));
+        } else {
+            self.telem_data.set("stroke_len".to_string(), TelemData::F32(config_info::DEFAULT_SUS_MAX - config_info::DEFAULT_SUS_MAX));
+            self.telem_data.set_count("suspension_counts".to_string(), &sus_data_f32, 15, config_info::DEFAULT_SUS_MAX as f64);
+        }
+
+        let sus_data_f32_enum = self.telem_data.enumerated_with_transform(&sus_data_f32, 1.0 / FREQUENCY as f32, 0.0);
+        let line_manager = LineManager::new(to_plot_points(&sus_data_f32_enum));
+        
+        self.telem_data.set("suspension_line".to_string(), TelemData::LineManager(line_manager));
+        
+        let suspension_graph = SuspensionGraph::init();
+        let histogram = BarPoints::init();
+        let suspension_graph_box = Box::new(suspension_graph);
+        let histogram_box = Box::new(histogram);
+
+        self.sus_view = View::new();
+        self.sus_view.add_graph(suspension_graph_box);
+        self.sus_view.add_graph(histogram_box);
+        
+        self.count_bottom_outs();
+    }
 }
 
 impl<'a> eframe::App for TelemApp<'a> {
     /// Called by the frame work to save state before shutdown.
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
         eframe::set_value(storage, eframe::APP_KEY, self);
+        self.config.save();
     }
 
     /// Called each time the UI needs repainting, which may be many times per second.
     fn update(&mut self, ctx: &eframe::egui::Context, _frame: &mut eframe::Frame) {
-        let mut data_tuple: Option<Vec<(f32, f32)>> = None;
+        let mut updated_data = false;
 
         #[cfg(not(target_arch = "wasm32"))] // no File->Quit on web pages!
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
@@ -103,13 +161,14 @@ impl<'a> eframe::App for TelemApp<'a> {
             });
         });
         egui::SidePanel::left("side_panel").show(ctx, |ui| {
-            ui.heading("Side Panel");
 
             ui.horizontal(|ui| {
                 ui.label("path to data.");
                 ui.text_edit_singleline(&mut self.path);
             });
-
+            ui.heading("File Select");
+            
+            ui.label(self.path.clone());
             ui.horizontal(|ui| {
                 if ui.button("Select File").clicked() {
                     let mut res_dir = env::current_dir().unwrap_or(PathBuf::default());
@@ -123,25 +182,15 @@ impl<'a> eframe::App for TelemApp<'a> {
 
                     if let Some(file_path) = file {
                         self.path = file_path.to_str().unwrap().to_string();
-                        self.data.load(self.path.to_string());
-
-                        data_tuple = Some(
-                            self.data
-                                .data
-                                .iter()
-                                .enumerate()
-                                .map(|(i, d)| (i as f32 / FREQUENCY as f32, *d as f32))
-                                .collect(),
-                        );
-
-                        //self.histogram_data.update(self.data.data.clone());
-                        //println!("{:#?}",self.histogram_data.data);
                     }
-
-                    //println!("{}", self.path);
                 }
-                ui.label(self.path.clone());
+                if ui.button("Load").clicked() {
+                    self.data.load(self.path.to_string());
+                    updated_data = true;
+                }
             });
+
+            ui.separator();
 
             ui.add(egui::Slider::new(&mut self.value, 0.0..=100.0).text("value"));
             ui.add(egui::Slider::new(&mut self.time, 1..=10).text("time for loading"));
@@ -164,6 +213,74 @@ impl<'a> eframe::App for TelemApp<'a> {
                 self.count_bottom_outs();
             }
 
+            ui.separator();
+            ui.heading("Config");
+
+            let mut stroke_len = 0.0;
+            let mut low_adj = 0.0;
+            let mut high_adj = 0.0;
+
+            let curr_sus_remap_info = self.config.current_sus_remap_info();
+
+            ui.horizontal(|ui| {
+                ui.label("Stroke length: ");
+                ui.text_edit_singleline(&mut self.stroke_len_str);
+            });
+
+            ui.horizontal(|ui| {
+                ui.label("Low threshold: ");
+                ui.text_edit_singleline(&mut self.low_adj_str);
+            });
+
+            ui.horizontal(|ui| {
+                ui.label("High threshold: ");
+                ui.text_edit_singleline(&mut self.high_adj_str);
+            });
+
+            ui.horizontal(|ui| {
+                if ui.button("Recalculate").clicked() {
+                    let mut incorrect_formatting = false;
+                    
+                    if let Ok(stroke_len_res) = self.stroke_len_str.parse::<f32>() {
+                        stroke_len = stroke_len_res;
+                    } else {
+                        incorrect_formatting = true;
+                    }
+                    
+                    if let Ok(low_res) = self.low_adj_str.parse::<f32>() {
+                        low_adj = low_res;
+                    } else {
+                        incorrect_formatting = true;
+                    }
+                    
+                    if let Ok(high_res) = self.high_adj_str.parse::<f32>() {
+                        high_adj = high_res;
+                    } else {
+                        incorrect_formatting = true;
+                    }
+    
+                    if incorrect_formatting {
+                        ui.label("Error: Incorrect Formatting");
+                    } else {
+                        curr_sus_remap_info.stroke_len = stroke_len;
+                        curr_sus_remap_info.calc_vals_from_min_and_max(low_adj, high_adj);
+                        updated_data = true;
+                    }
+                }
+
+                if !self.show_unmapped_data {
+                    if ui.button("Show data without mapping").clicked() {
+                        updated_data = true;
+                        self.show_unmapped_data = true;
+                    }
+                } else {
+                    if ui.button("Show data with mapping").clicked() {
+                        updated_data = true;
+                        self.show_unmapped_data = false;
+                    }
+                }
+            });
+
             ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {
                 ui.horizontal(|ui| {
                     ui.spacing_mut().item_spacing.x = 0.0;
@@ -179,40 +296,8 @@ impl<'a> eframe::App for TelemApp<'a> {
             });
         });
 
-        if let Some(sus_data) = data_tuple {
-            let line_manager = LineManager::new(to_plot_points(&sus_data));
-            self.telem_data
-                .set(
-                    "suspension_line".to_string(),
-                    TelemData::LineManager(line_manager),
-                )
-                .unwrap();
-            self.telem_data
-                .set_count(
-                    "suspension_counts".to_string(),
-                    &self.data.data,
-                    15,
-                    1024.0,
-                    60.0,
-                )
-                .unwrap();
-            self.telem_data
-                .set_turning_points(
-                    "front_turning_opints".to_string(),
-                    LineManager::new(to_plot_points(&sus_data)),
-                )
-                .unwrap();
-            self.sus_view = View::new();
-
-            let suspension_graph = SuspensionGraph::init();
-            let histogram = BarPoints::init();
-            let suspension_graph_box = Box::new(suspension_graph);
-            let histogram_box = Box::new(histogram);
-
-            self.sus_view.add_graph(suspension_graph_box);
-            self.sus_view.add_graph(histogram_box);
-
-            self.count_bottom_outs();
+        if updated_data {
+            self.reset_data();
         }
 
         egui::CentralPanel::default().show(ctx, |ui| {
