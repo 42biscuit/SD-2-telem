@@ -1,14 +1,13 @@
-
 use egui_plot::{Line, PlotPoint, PlotPoints};
 
 use crate::data::FREQUENCY;
 
 const MAX_POINTS: usize = 1024;
 
-/// Represents a single level of detail, and should only be used as part of a LineManager. 
+/// Represents a single level of detail, and should only be used as part of a LineManager.
 /// It stores a sampled copy of the original data at a lower resolution.
 pub struct LineInstance {
-    /// How often the instance has sampled from the original data, as an index of 2, (e.g. a period of 3 
+    /// How often the instance has sampled from the original data, as an index of 2, (e.g. a period of 3
     /// means it has taken every 8th point, since 2^3=8)
     pub period: u32,
     /// The sampled data
@@ -17,21 +16,21 @@ pub struct LineInstance {
 
 /// Stores a list of data points at multiple resolutions
 pub struct LineManager {
-    /// A vector containing the same line at different levels of detail. 
+    /// A vector containing the same line at different levels of detail.
     /// Index 0 is original resolution, index 1 is half resolution (every 2nd point), etc.
     instances: Vec<LineInstance>,
 }
 
 impl LineInstance {
     /// Find the start and end indices that fill a data range
-    /// 
+    ///
     /// # Arguments
-    /// 
+    ///
     /// `min`: The low end of the range  
     /// `max`: The high end of the range
-    /// 
+    ///
     /// # Returns
-    /// 
+    ///
     /// A 2-tuple containing the start and end indices
     pub fn get_points_in_range(&self, min: f64, max: f64) -> (usize, usize) {
         if self.data.len() == 0 {
@@ -39,10 +38,10 @@ impl LineInstance {
         }
 
         let step = 2usize.pow(self.period);
-    
+
         let min_i = f64::max(min, 0.0) as usize;
         let max_i = f64::max(max, 0.0) as usize;
-        
+
         let mut low_i = min_i / step;
         let mut high_i = max_i / step + 1;
 
@@ -59,13 +58,13 @@ impl LineInstance {
 
 impl LineManager {
     /// Create a new LineManager
-    /// 
+    ///
     /// # Arguments
-    /// 
+    ///
     /// `data`: A vector containing the points to be plotted
-    /// 
+    ///
     /// # Returns
-    /// 
+    ///
     /// A new LineManager
     pub fn new(data: Vec<PlotPoint>) -> LineManager {
         let data_len = data.len();
@@ -73,7 +72,7 @@ impl LineManager {
         let max_period = u32::max(max_period_f as u32 + 2, 1);
 
         let mut instances = Vec::<LineInstance>::new();
-        
+
         for i in 0..max_period {
             instances.push(LineInstance {
                 period: i,
@@ -93,19 +92,23 @@ impl LineManager {
         }
 
         LineManager {
-            instances
+            instances: instances,
         }
     }
 
+    pub fn get_line_instance(&self, index: usize) -> Option<&LineInstance> {
+        self.instances.get(index)
+    }
+
     /// Generate a line at the appropriate resolution
-    /// 
+    ///
     /// # Arguments
-    /// 
+    ///
     /// `min`: The lowest visible value  
     /// `max`: The highest visible value
-    /// 
+    ///
     /// # Returns
-    /// 
+    ///
     /// Some(Line) if a line could be created  
     /// None otherwise
     pub fn gen_line(&self, min: f64, max: f64) -> Option<Line> {
@@ -120,7 +123,7 @@ impl LineManager {
             let mut line_points = vec![PlotPoint { x: 0.0, y: 0.0 }; line_len];
 
             line_points.clone_from_slice(&i.data[indices.0..indices.1]);
-            
+
             //println!("LOD: {}, Points: {}", i.period, line_len);
 
             return Some(Line::new(PlotPoints::Owned(line_points)));

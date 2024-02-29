@@ -4,7 +4,7 @@ use std::io;
 use std::io::prelude::*;
 
 pub const BUFF_SIZE: usize = 4500;
-pub const FREQUENCY: u16 = 40;
+pub const FREQUENCY: f64 = 40.0;
 
 /// allows more polymorphic approach to storing different data typed to Data
 pub enum TelemData {
@@ -17,19 +17,17 @@ pub enum TelemData {
     PlotPointV(Vec<PlotPoint>),
     LineManager(LineManager),
 }
-/// Hash map containing multipil data entries 
-
+/// Hash map containing multipil data entries
 pub struct Data {
     /// fields, hashmap holding all telem data
-    pub fields: HashMap<String, TelemData>
+    pub fields: HashMap<String, TelemData>,
 }
-
 
 impl Data {
     ///new empty Data
     pub fn new() -> Data {
         Data {
-            fields: HashMap::new()
+            fields: HashMap::new(),
         }
     }
 
@@ -43,30 +41,25 @@ impl Data {
         Ok(())
     }
 
-
     ///  returns average value of all points in the given data field
     ///  # Arguments
     /// * `field` - the string data field to calculate the average value for
-    pub fn data_average(&self, field: String) -> f32{
+    pub fn data_average(&self, field: String) -> f32 {
         let mut average = 0.0;
         let data_res = self.get(field);
 
         let mut data = None;
 
-        if let Ok(TelemData::U32V( t_data )) = data_res
-        {
+        if let Ok(TelemData::U32V(t_data)) = data_res {
             data = Some(t_data);
         }
 
-        for (size, point) in data.unwrap().iter().enumerate(){
+        for (size, point) in data.unwrap().iter().enumerate() {
             average += (*point as f32 - average) / size as f32;
         }
 
         average
-        
     }
-
-    
 
     pub fn get(&self, field: String) -> Result<&TelemData, &str> {
         if let Some(field_boxed) = self.fields.get(&field) {
@@ -76,28 +69,81 @@ impl Data {
         Err("Field does not exist")
     }
 
-    /// sets sorts data in set Bins 
+    /// generates a list of the turning points for a graph
+    ///
+    /// # Arguments
+    ///
+    /// * `field` - the lable of where the data will be stored in Data
+    /// * `data` - the LineManager to take the line data from
+    ///
+    /// # Return
+    /// result of adding the data generated to self
+    pub fn set_turning_points(&mut self, field: String, data: LineManager) -> Result<(), &str> {
+        let mut turning_points = Vec::new();
+
+        let line_choice = data;
+        let max_line_points =
+            (line_choice.get_line_instance(0).unwrap().data.len() as f64 / FREQUENCY) * 20.0;
+        let mut index = 1;
+        while line_choice.get_line_instance(index).unwrap().data.len() as f64 >= max_line_points {
+            index += 1;
+        }
+        let line_choice = line_choice.get_line_instance(index).unwrap().data.clone();
+        let mut decreasing = false;
+        turning_points.push(line_choice[0]);
+        if turning_points[0].y > line_choice[1].y {
+            decreasing = true;
+        }
+        let mut outer_index = 5;
+        for plot_point in &line_choice[5..line_choice.len() - 5] {
+            let (mut back_average, mut front_average) = (0.0, 0.0);
+
+            for inner_index in 0..5 {
+                front_average += plot_point.y - line_choice[outer_index + inner_index].y;
+                back_average += plot_point.y - line_choice[outer_index - inner_index].y;
+            }
+
+            // if decreasing dosent match the direction that the graph is heading in flip it
+            if decreasing == (back_average > front_average) {
+                decreasing ^= true;
+                turning_points.push(plot_point.clone());
+            };
+
+            outer_index += 1
+        }
+        self.set(field, TelemData::PlotPointV(turning_points))
+    }
+
+    /// sets sorts data in set Bins
     /// # Returns
     /// sorted data
-    pub fn set_count(&mut self, field: String, data: &Vec<u32>, bin_count: usize, max_val: f64, max_val_norm: f64) -> Result<(), &str> {
+    pub fn set_count(
+        &mut self,
+        field: String,
+        data: &Vec<u32>,
+        bin_count: usize,
+        max_val: f64,
+        max_val_norm: f64,
+    ) -> Result<(), &str> {
         let mut data_count = vec![0u32; bin_count];
-        for point in data.iter(){
-            let index = ((*point as f64/(max_val / max_val_norm)) * (bin_count as f64/max_val_norm)).round() as usize;
-            data_count[index-1] += 1;
+        for point in data.iter() {
+            let index = ((*point as f64 / (max_val / max_val_norm))
+                * (bin_count as f64 / max_val_norm))
+                .round() as usize;
+            data_count[index - 1] += 1;
         }
 
         self.set(field, TelemData::U32V(data_count))
     }
 }
 
-pub const MAX_DATA_VALUE:f64 = 60.0;
+pub const MAX_DATA_VALUE: f64 = 60.0;
 
 #[derive(Clone)]
 
-
-pub struct Buff{
-    pub data:Vec<u32>,
-    stackBuff:[u16;BUFF_SIZE],
+pub struct Buff {
+    pub data: Vec<u32>,
+    stackBuff: [u16; BUFF_SIZE],
 }
 
 impl ToPlotPoint for (u32, u32) {
@@ -118,31 +164,33 @@ impl ToPlotPoint for (f32, f32) {
     }
 }
 
-impl Buff{
+impl Buff {
     /// constructs new Buff size BUFF_SIZE
-    pub fn new()->Self{
-        Buff{
-            data:Vec::new(),
-            stackBuff: [0 as u16;BUFF_SIZE],
+    pub fn new() -> Self {
+        Buff {
+            data: Vec::new(),
+            stackBuff: [0 as u16; BUFF_SIZE],
         }
     }
 
-    pub fn getstackBuff(&self) -> [u16;BUFF_SIZE]{
+    pub fn getstackBuff(&self) -> [u16; BUFF_SIZE] {
         self.stackBuff
     }
 
     /// takes a String path [path] and returns instace of bufReader
     /// - [x] Load all data
     /// - [ ]  Save time data to allow easier referencing
-    /// - [ ]  Implement rolling loading 
-    pub fn load(&mut self, path : String){
-        //does not filter out 
+    /// - [ ]  Implement rolling loading
+    pub fn load(&mut self, path: String) {
+        //does not filter out
         let file = File::open(path.trim()).unwrap();
-        for line in io::BufReader::new(&file).lines(){
+        for line in io::BufReader::new(&file).lines() {
             let lineHolder = line.unwrap();
-            match lineHolder.find("."){
-                Some(i) => self.data.push(lineHolder.slice(0 as usize..i).parse::<u32>().unwrap()),
-                    //self.data.push(lineHolder.slice(0 as usize..lineHolder.find(".").unwrap()).parse::<u16>().unwrap());
+            match lineHolder.find(".") {
+                Some(i) => self
+                    .data
+                    .push(lineHolder.slice(0 as usize..i).parse::<u32>().unwrap()),
+                //self.data.push(lineHolder.slice(0 as usize..lineHolder.find(".").unwrap()).parse::<u16>().unwrap());
                 None => break,
             }
         }
@@ -151,7 +199,7 @@ impl Buff{
 
 use std::ops::{Bound, RangeBounds};
 
-use egui_plot::PlotPoint;
+use egui_plot::{Line, PlotPoint};
 
 use crate::graph::line_manager::LineManager;
 use crate::graph::ToPlotPoint;
@@ -167,22 +215,28 @@ impl StringUtils for str {
         let mut byte_start = 0;
         let mut it = self.chars();
         loop {
-            if char_pos == start { break; }
+            if char_pos == start {
+                break;
+            }
             if let Some(c) = it.next() {
                 char_pos += 1;
                 byte_start += c.len_utf8();
+            } else {
+                break;
             }
-            else { break; }
         }
         char_pos = 0;
         let mut byte_end = byte_start;
         loop {
-            if char_pos == len { break; }
+            if char_pos == len {
+                break;
+            }
             if let Some(c) = it.next() {
                 char_pos += 1;
                 byte_end += c.len_utf8();
+            } else {
+                break;
             }
-            else { break; }
         }
         &self[byte_start..byte_end]
     }

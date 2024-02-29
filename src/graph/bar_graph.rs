@@ -1,31 +1,31 @@
 use crate::data::TelemData;
-use egui_plot::{Bar, BarChart};
 use egui::Id;
 use egui_plot::Plot;
+use egui_plot::{Bar, BarChart};
 
 use super::Graph;
-pub const NUMBER_BARS:usize = 15;
+pub const NUMBER_BARS: usize = 15;
 const BAR_WIDTH: f64 = 1.0;
 
-pub struct BarPoints{
-    pub data:[u32; NUMBER_BARS],
+pub struct BarPoints {
+    data: [u32; NUMBER_BARS],
     bars: Vec<Bar>,
 }
 
-impl BarPoints{
-    pub fn new() -> BarPoints{
-        BarPoints{
+impl BarPoints {
+    pub fn new() -> BarPoints {
+        BarPoints {
             data: [0; NUMBER_BARS],
             bars: Vec::new(),
         }
     }
 
-    pub fn bars(&self) -> Vec<Bar>{
+    pub fn bars(&self) -> Vec<Bar> {
         self.bars.clone()
     }
 }
 
-impl<'a> Graph<'a> for BarPoints{
+impl<'a> Graph<'a> for BarPoints {
     fn draw(&self, data: &crate::data::Data, _ctx: &egui::Context, ui: &mut egui::Ui) {
         let data_count_res = data.get("suspension_counts".to_string());
         let data_count;
@@ -51,12 +51,13 @@ impl<'a> Graph<'a> for BarPoints{
             .allow_boxed_zoom(false)
             .show_grid(false);
 
-        plot.show(ui, |plot_ui|{
-            plot_ui.bar_chart(histogram)
-        });
+        plot.show(ui, |plot_ui| plot_ui.bar_chart(histogram));
     }
 
-    fn init() -> Self where Self: Sized {
+    fn init() -> Self
+    where
+        Self: Sized,
+    {
         BarPoints::new()
     }
 }
