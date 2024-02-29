@@ -1,7 +1,7 @@
 
 
 use egui::{Context, Id, Ui, Vec2b};
-use egui_plot::{Line, Plot, PlotMemory, PlotPoints};
+use egui_plot::{Line, Plot, PlotBounds, PlotMemory, PlotPoints};
 
 use crate::{data::{Data, TelemData, FREQUENCY}, graph::Graph};
 
@@ -39,7 +39,9 @@ impl<'a> Graph<'a> for SuspensionGraph {
             .allow_zoom(axis_bools_drag)
             .show_grid(false)
             .include_y(0.0)
-            .include_y(60.0);
+            .include_y(data.get_f32("stroke_len".to_string()));
+            //.include_y(data.get_f32("suspension_min".to_string()))
+            //.include_y(data.get_f32("suspension_max".to_string()));
 
         let mut extremes = [0.0, 0.0];
         
@@ -64,7 +66,7 @@ impl<'a> Graph<'a> for SuspensionGraph {
             if let Some(travel_line_u) = travel_line {
                 plot_ui.line(travel_line_u);
             }
-            plot_ui.line(bottom_out_line);  
+            //plot_ui.line(bottom_out_line);  
         });
     }
 }

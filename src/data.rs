@@ -12,6 +12,7 @@ pub enum TelemData {
     U32V(Vec<u32>),
     U32P((u32, u32)),
     U32PV(Vec<(u32, u32)>),
+    F32(f32),
     F32V(Vec<f32>),
     F32PV(Vec<(f32, f32)>),
     F64(f64),
@@ -45,11 +46,23 @@ impl Data {
         Ok(())
     }
 
+    pub fn get(&self, field: String) -> Result<&TelemData, &str> {
+        if let Some(field_boxed) = self.fields.get(&field) {
+            return Ok(field_boxed);
+        }
+
+        Err("Field does not exist")
+    }
+
+    pub fn clear(&mut self) {
+        self.fields.clear();
+    }
+
 
     ///  returns average value of all points in the given data field
     ///  # Arguments
     /// * `field` - the string data field to calculate the average value for
-    pub fn data_average(&self, field: String) -> f32{
+    pub fn data_average(&self, field: String) -> f32 {
         let mut average = 0.0;
         let data_res = self.get(field);
 
@@ -68,17 +81,17 @@ impl Data {
         
     }
 
-    pub fn get(&self, field: String) -> Result<&TelemData, &str> {
-        if let Some(field_boxed) = self.fields.get(&field) {
-            return Ok(field_boxed);
-        }
-
-        Err("Field does not exist")
-    }
-
     pub fn get_u32v(&self, field: String) -> &Vec<u32> {
         if let Ok(TelemData::U32V(res)) = self.get(field) {
-            return &res;
+            return res;
+        }
+
+        panic!("Field does not exist");
+    }
+
+    pub fn get_f32(&self, field: String) -> f32 {
+        if let Ok(TelemData::F32(res)) = self.get(field) {
+            return *res;
         }
 
         panic!("Field does not exist");
@@ -95,18 +108,29 @@ impl Data {
     /// sets sorts data in set Bins 
     /// # Returns
     /// sorted data
-    pub fn set_count(&mut self, field: String, data: &Vec<u32>, bin_count: usize, max_val: f64, max_val_norm: f64) -> Result<(), &str> {
+    pub fn set_count(&mut self, field: String, data: &Vec<f32>, bin_count: usize, max_val: f64) -> Result<(), &str> {
         let mut data_count = vec![0u32; bin_count];
         for point in data.iter(){
-            let index = ((*point as f64/(max_val / max_val_norm)) * (bin_count as f64/max_val_norm)).round() as usize;
-            data_count[index-1] += 1;
+            let mut index = ((*point as f64/max_val) * (bin_count as f64)).round() as usize;
+            index = usize::clamp(index, 0, bin_count - 1);
+            data_count[index] += 1;
         }
 
         self.set(field, TelemData::U32V(data_count))
     }
 
-    pub fn set_remapped_1d<T>(&mut self, field: String, data: &Vec<T>, scale: f64, offset: f64) -> Result<(), &str> {
-        Ok(())
+    pub fn remapped_1d(&mut self, data: &Vec<f32>, remap_info: &SuspensionRemapInfo) -> Vec<f32> {
+        data.iter().map(|d| {
+            let new_val = remap_info.remap(*d);
+            new_val
+        }).collect()
+    }
+    
+    pub fn remapped_1d_with_clamp(&mut self, data: &Vec<f32>, remap_info: &SuspensionRemapInfo, min: f32, max: f32) -> Vec<f32> {
+        data.iter().map(|d| {
+            let new_val = f32::clamp(remap_info.remap(*d), min, max);
+            new_val
+        }).collect()
     }
     
     pub fn enumerated_with_transform<T: Copy>(&mut self, data: &Vec<T>, scale: f32, offset: f32) -> Vec<(f32, T)> {
@@ -130,7 +154,7 @@ impl ToPlotPoint for (u32, u32) {
     fn to_plot_point(&self) -> PlotPoint {
         PlotPoint {
             x: self.0 as f64,
-            y: (self.1 as f64) / (1024.0 / MAX_DATA_VALUE),
+            y: self.1 as f64,
         }
     }
 }
@@ -139,7 +163,7 @@ impl ToPlotPoint for (f32, f32) {
     fn to_plot_point(&self) -> PlotPoint {
         PlotPoint {
             x: self.0 as f64,
-            y: (self.1 as f64) / (1024.0 / MAX_DATA_VALUE),
+            y: self.1 as f64,
         }
     }
 }
@@ -163,6 +187,7 @@ impl Buff{
     /// - [ ]  Implement rolling loading 
     pub fn load(&mut self, path : String){
         //does not filter out 
+        self.data.clear();
         let file = File::open(path.trim()).unwrap();
         for line in io::BufReader::new(&file).lines(){
             let lineHolder = line.unwrap();
@@ -175,10 +200,11 @@ impl Buff{
     }
 }
 
-use std::ops::{Add, Bound, RangeBounds};
+use std::ops::{Add, Bound, Mul, RangeBounds};
 
 use egui_plot::PlotPoint;
 
+use crate::config_info::SuspensionRemapInfo;
 use crate::graph::line_manager::LineManager;
 use crate::graph::ToPlotPoint;
 

@@ -49,13 +49,15 @@ impl<'a> Graph<'a> for BarPoints{
             .view_aspect(2.0)
             .allow_scroll(false)
             .allow_boxed_zoom(false)
+            .allow_zoom(false)
+            .allow_drag(false)
             .show_grid(false);
 
         plot.show(ui, |plot_ui|{
             plot_ui.bar_chart(histogram)
         });
     }
-
+ 
     fn init() -> Self where Self: Sized {
         BarPoints::new()
     }
