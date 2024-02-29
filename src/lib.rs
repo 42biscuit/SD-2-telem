@@ -1,8 +1,8 @@
 #![warn(clippy::all, rust_2018_idioms)]
 #![allow(non_snake_case)]
 mod app;
-pub mod graph;
 mod data;
+pub mod graph;
 mod config_info;
 pub use app::TelemApp;
 pub use data::Buff;

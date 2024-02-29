@@ -3,15 +3,15 @@ use crate::config_info::{self, ConfigInfo};
 use crate::data::{Data, TelemData, FREQUENCY};
 use crate::graph::bar_graph::BarPoints;
 use crate::graph::line_manager::LineManager;
-use crate::graph::{to_plot_points, Graph};
 use crate::graph::suspension_graph::SuspensionGraph;
+use crate::graph::{to_plot_points, Graph};
 use crate::view::View;
 use crate::Buff;
 
 use rfd::FileDialog;
 
-use std::path::PathBuf;
 use std::env;
+use std::path::PathBuf;
 
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[derive(serde::Deserialize, serde::Serialize)]
@@ -19,7 +19,7 @@ use std::env;
 pub struct TelemApp<'a> {
     // Example stuff:
     path: String,
-    time:u64,
+    time: u64,
     #[serde(skip)]
     data: Buff,
     // this how you opt-out of serialization of a member
@@ -156,7 +156,7 @@ impl<'a> eframe::App for TelemApp<'a> {
                     }
                     if ui.button("more").clicked() {
                         println!("button pressed");
-                    }         
+                    }
                 });
             });
         });
@@ -171,8 +171,7 @@ impl<'a> eframe::App for TelemApp<'a> {
             ui.label(self.path.clone());
             ui.horizontal(|ui| {
                 if ui.button("Select File").clicked() {
-                    let mut res_dir = env::current_dir()
-                        .unwrap_or(PathBuf::default());
+                    let mut res_dir = env::current_dir().unwrap_or(PathBuf::default());
 
                     res_dir.push("resources");
 
@@ -206,7 +205,9 @@ impl<'a> eframe::App for TelemApp<'a> {
             });
             ui.horizontal(|ui| {
                 ui.label("Bottom threshhold: ");
-                ui.add(egui::Slider::new(&mut self.bottom_out_threshold, 0.0..=60.0).text("Threshold"));
+                ui.add(
+                    egui::Slider::new(&mut self.bottom_out_threshold, 0.0..=60.0).text("Threshold"),
+                );
             });
             if ui.button("Recalculate").clicked() {
                 self.count_bottom_outs();
@@ -313,7 +314,7 @@ impl<'a> eframe::App for TelemApp<'a> {
             ));
             egui::warn_if_debug_build(ui);
         });
-   
+
         if false {
             egui::Window::new("Window").show(ctx, |ui| {
                 ui.label("Windows can be moved by dragging them.");
@@ -324,4 +325,3 @@ impl<'a> eframe::App for TelemApp<'a> {
         }
     }
 }
-
