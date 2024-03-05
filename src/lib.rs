@@ -2,6 +2,7 @@
 #![allow(non_snake_case)]
 mod app;
 mod data;
+mod loader;
 pub mod graph;
 mod config_info;
 pub use app::TelemApp;

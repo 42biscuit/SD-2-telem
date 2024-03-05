@@ -77,6 +77,14 @@ impl Data {
         average
     }
 
+    pub fn get_line_manager(&self, field: String) -> &LineManager {
+        if let Ok(TelemData::LineManager(res)) = self.get(field) {
+            return &res;
+        }
+
+        panic!("Field does not exist");
+    }
+
     pub fn get_u32v(&self, field: String) -> &Vec<u32> {
         if let Ok(TelemData::U32V(res)) = self.get(field) {
             return &res;

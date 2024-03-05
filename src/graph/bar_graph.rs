@@ -55,8 +55,4 @@ impl<'a> Graph<'a> for BarPoints {
 
         plot.show(ui, |plot_ui| plot_ui.bar_chart(histogram));
     }
- 
-    fn init() -> Self where Self: Sized {
-        BarPoints::new()
-    }
 }

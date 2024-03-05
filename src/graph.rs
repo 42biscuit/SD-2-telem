@@ -33,15 +33,6 @@ where
 
 /// Functions which are required by all graphs
 pub trait Graph<'a> {
-    /// Initialise a new graph
-    ///
-    /// # Arguments
-    ///
-    /// `data`: The data that this graph will use
-    fn init() -> Self
-    where
-        Self: Sized;
-
     /// Update and render the graph
     ///
     /// # Arguments
