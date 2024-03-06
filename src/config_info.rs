@@ -16,7 +16,7 @@ pub struct SuspensionRemapInfo {
 pub struct ConfigInfo {
     pub sus_remap_info: Vec<SuspensionRemapInfo>,
     pub current_sus_remap_i: usize,
-}
+}  
 
 impl SuspensionRemapInfo {
     pub fn calc_vals_from_min_and_max(&mut self, new_min: f32, new_max: f32) {
@@ -63,7 +63,7 @@ impl ConfigInfo {
             .unwrap();
 
         let buf_writer = BufWriter::new(file);
-        serde_json::to_writer(buf_writer, &self);
+        serde_json::to_writer(buf_writer, &self).unwrap();
     }
 
     pub fn current_sus_remap_info(&mut self) -> &mut SuspensionRemapInfo {
