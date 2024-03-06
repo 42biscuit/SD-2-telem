@@ -32,12 +32,6 @@ impl DispVelGraph {
 }   
 
 impl <'a> Graph<'a> for DispVelGraph{
-
-    fn init() -> Self
-        where
-            Self: Sized {
-        DispVelGraph::new()
-    }
     fn draw(&self, data: &crate::data::Data, ctx: &egui::Context, ui: &mut egui::Ui) {
         let x_disp = data.get_f64v("front_disp".to_string());
         let y_vel = data.get_f64v("front_speed".to_string());

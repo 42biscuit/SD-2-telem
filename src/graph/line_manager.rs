@@ -88,10 +88,10 @@ impl LineManager {
                 }
             }
         }
-        println!("data len {}", data.len());
-        for i in instances.iter() {
-            println!("{:?}", i.data.len());
-        }
+        // println!("data len {}", data.len());
+        // for i in instances.iter() {
+        //     println!("{:?}", i.data.len());
+        // }
 
         LineManager {
             instances: instances,
