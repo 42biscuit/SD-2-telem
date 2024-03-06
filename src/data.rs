@@ -250,11 +250,12 @@ impl Data {
     /// sets sorts data in set Bins
     /// # Returns
     /// sorted data
-    pub fn set_count(&mut self, field: String, data: &Vec<f32>, bin_count: usize, max_val: f64) -> Result<(), &str> {
+    pub fn set_count(&mut self, field: String, data: &Vec<f32>, bin_count: usize, max_val: f64, reverse: bool) -> Result<(), &str> {
         let mut data_count = vec![0u32; bin_count];
         for point in data.iter(){
             let mut index = ((*point as f64/max_val) * (bin_count as f64)).round() as usize;
             index = usize::clamp(index, 0, bin_count - 1);
+            if reverse { index = bin_count - 1 - index ;}
             data_count[index] += 1;
         }
 
@@ -309,6 +310,7 @@ impl ToPlotPoint for (f32, f32) {
     }
 }
 
+<<<<<<< HEAD
 impl ToPlotPoint for (f64, f64) {
     fn to_plot_point(&self) -> PlotPoint {
         PlotPoint {
@@ -317,15 +319,26 @@ impl ToPlotPoint for (f64, f64) {
         }
     }
 }
+=======
+>>>>>>> c837028fad43bbe54749a214135a5eb0a40667b4
 
 impl ToPlotPoint for (&f64, &f64) {
     fn to_plot_point(&self) -> PlotPoint {
         PlotPoint {
+<<<<<<< HEAD
             x: *self.0 as f64,
             y: *self.1 as f64,
         }
     }
 }
+=======
+            x: *self.0,
+            y: *self.1,
+        }
+    }
+}
+
+>>>>>>> c837028fad43bbe54749a214135a5eb0a40667b4
 impl Buff {
     /// constructs new Buff size BUFF_SIZE
     pub fn new() -> Self {
