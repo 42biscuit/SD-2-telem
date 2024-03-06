@@ -1,9 +1,10 @@
-use std::{fs::{File, OpenOptions}, io::{BufReader, BufWriter}};
+use std::{collections::HashMap, fs::{File, OpenOptions}, io::{BufReader, BufWriter}};
 use serde::{Deserialize, Serialize};
 
 pub const DEFAULT_SUS_MIN: f32 = 0.0;
 pub const DEFAULT_SUS_MAX: f32 = 1024.0;
 pub const DEFAULT_SUS_DIFF: f32 = DEFAULT_SUS_MAX - DEFAULT_SUS_MIN;
+pub const MAPPED_MAX: f32 = 100.0;
 
 #[derive(Serialize, Deserialize, Clone, Copy)]
 pub struct SuspensionRemapInfo {
@@ -14,8 +15,7 @@ pub struct SuspensionRemapInfo {
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct ConfigInfo {
-    pub sus_remap_info: Vec<SuspensionRemapInfo>,
-    pub current_sus_remap_i: usize,
+    pub sus_remap_info: HashMap<String, SuspensionRemapInfo>,
 }
 
 impl SuspensionRemapInfo {
@@ -26,7 +26,7 @@ impl SuspensionRemapInfo {
     }
 
     pub fn remap(&self, val: f32) -> f32 {
-        (val * self.scale + self.offset) * (self.stroke_len / DEFAULT_SUS_DIFF)
+        (val * self.scale + self.offset) * (MAPPED_MAX / DEFAULT_SUS_DIFF)
     }
 
     pub fn min(&self) -> f32 {
@@ -38,7 +38,7 @@ impl SuspensionRemapInfo {
     }
 
     pub fn inverse(&self, val: f32) -> f32 {
-        ((val / (self.stroke_len / DEFAULT_SUS_DIFF)) - self.offset) / self.scale
+        ((val / (MAPPED_MAX / DEFAULT_SUS_DIFF)) - self.offset) / self.scale
     }
 
     pub fn inverse_without_stroke_len_scale(&self, val: f32) -> f32 {
@@ -47,6 +47,12 @@ impl SuspensionRemapInfo {
 }
 
 impl ConfigInfo {
+    pub fn load_blank() -> ConfigInfo {
+        ConfigInfo {
+            sus_remap_info: HashMap::new(),
+        }
+    }
+
     pub fn load() -> ConfigInfo {
         let file = File::open("config.json").unwrap();
         let buf_reader = BufReader::new(file);
@@ -63,10 +69,18 @@ impl ConfigInfo {
             .unwrap();
 
         let buf_writer = BufWriter::new(file);
-        serde_json::to_writer(buf_writer, &self);
+        serde_json::to_writer(buf_writer, &self).expect("Error saving to config file");
     }
 
-    pub fn current_sus_remap_info(&mut self) -> &mut SuspensionRemapInfo {
-        &mut self.sus_remap_info[self.current_sus_remap_i]
+    pub fn add_sus_remap_info(&mut self, key: String, info: SuspensionRemapInfo) {
+        self.sus_remap_info.insert(key, info);
+    }
+
+    pub fn set_sus_remap_info(&mut self, key: String, info: SuspensionRemapInfo) {
+        self.sus_remap_info.insert(key, info).expect("Error: Suspension remap info not found");
+    }
+
+    pub fn get_sus_remap_info(&self, key: String) -> SuspensionRemapInfo {
+        *self.sus_remap_info.get(&key).expect("Error: Suspension remap info not found")
     }
 }

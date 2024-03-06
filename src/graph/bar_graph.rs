@@ -8,26 +8,26 @@ pub const NUMBER_BARS: usize = 15;
 const BAR_WIDTH: f64 = 1.0;
 
 pub struct BarPoints {
-    data: [u32; NUMBER_BARS],
-    bars: Vec<Bar>,
+    sus_count_str: String,
+    dims: Option<(f32, f32)>,
 }
 
 impl BarPoints {
-    pub fn new() -> BarPoints {
+    pub fn new(sus_count_str: String) -> BarPoints {
         BarPoints {
-            data: [0; NUMBER_BARS],
-            bars: Vec::new(),
+            sus_count_str,
+            dims: None,
         }
     }
 
-    pub fn bars(&self) -> Vec<Bar> {
-        self.bars.clone()
+    pub fn set_dims(&mut self, width: f32, height: f32) {
+        self.dims = Some((width, height));
     }
 }
 
 impl<'a> Graph<'a> for BarPoints {
     fn draw(&self, data: &crate::data::Data, _ctx: &egui::Context, ui: &mut egui::Ui) {
-        let data_count_res = data.get("suspension_counts".to_string());
+        let data_count_res = data.get(self.sus_count_str.clone());
         let data_count;
         if let Ok(TelemData::U32V(counts)) = data_count_res {
             data_count = counts.to_vec();
@@ -44,14 +44,20 @@ impl<'a> Graph<'a> for BarPoints {
 
         let histogram = BarChart::new(bars);
 
-        let plot = Plot::new("histogram")
-            .id(Id::new("histogram"))
+        let mut plot = Plot::new("histogram")
+            .id(Id::new(self.sus_count_str.clone()))
             .view_aspect(2.0)
             .allow_scroll(false)
             .allow_boxed_zoom(false)
             .allow_zoom(false)
             .allow_drag(false)
             .show_grid(false);
+
+        if let Some((width, height)) = self.dims {
+            plot = plot
+                .width(width)
+                .height(height);
+        }
 
         plot.show(ui, |plot_ui| plot_ui.bar_chart(histogram));
     }

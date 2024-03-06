@@ -53,7 +53,7 @@ impl<'a> Graph<'a> for SuspensionGraph {
             .allow_zoom(axis_bools_drag)
             .show_grid(false)
             .include_y(0.0)
-            .include_y(data.get_f32("stroke_len".to_string()));
+            .include_y(100.0);
             //.include_y(data.get_f32("suspension_min".to_string()))
             //.include_y(data.get_f32("suspension_max".to_string()));
 

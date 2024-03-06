@@ -3,10 +3,10 @@
 mod app;
 mod data;
 mod loader;
-pub mod graph;
 mod config_info;
+mod config_window;
+mod graph;
+mod view;
 pub use app::TelemApp;
 pub use data::Buff;
 pub use data::BUFF_SIZE;
-
-mod view;

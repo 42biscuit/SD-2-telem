@@ -33,6 +33,8 @@ where
 
 /// Functions which are required by all graphs
 pub trait Graph<'a> {
+    //fn pre_draw(&self, data: &Data, ctx: &Context, ui: &mut Ui);
+
     /// Update and render the graph
     ///
     /// # Arguments

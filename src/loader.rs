@@ -1,60 +1,62 @@
+use std::collections::HashMap;
 use std::fs::File;
 use std::io;
 use std::io::prelude::*;
 use std::ops::{Bound, RangeBounds};
 
-pub struct Loader {
+pub struct RawPotData {
+    pub remap_ref: String,
     pub polling_rate: u32,
-    pub front_sus_data: Vec<u32>,
-    pub rear_sus_data: Vec<u32>,
-    pub front_brake_data: Option<Vec<u32>>,
-    pub rear_brake_data: Option<Vec<u32>>,
+    pub data: Vec<u32>,
+}
+
+pub struct Loader {
+    pub raw_pot_datas: HashMap<String, RawPotData>,
 }
 
 impl Loader {
     pub fn new() -> Loader {
         Loader {
-            polling_rate: 0,
-            front_sus_data: Vec::new(),
-            rear_sus_data: Vec::new(),
-            front_brake_data: None,
-            rear_brake_data: None,
+            raw_pot_datas: HashMap::new(),
         }
     }
+
+    pub fn get_raw_pot_data(&self, key: String) -> &RawPotData {
+        self.raw_pot_datas.get(&key).expect("Error: Data not found")
+    }
+
     /// takes a String path [path] and returns instace of bufReader
     /// - [x] Load all data
     /// - [ ]  Save time data to allow easier referencing
     /// - [ ]  Implement rolling loading 
     pub fn load(&mut self, path: String) {
-        let file_for_count = File::open(path.trim()).unwrap();
-        let line_count = io::BufReader::new(&file_for_count).lines().count();
+        self.raw_pot_datas.clear();
 
         let file = File::open(path.trim()).unwrap();
         let mut lines = io::BufReader::new(&file).lines();
         let first_line = lines.next().unwrap().unwrap();
 
-        let mut metadata_iter = first_line.split(',');
-        self.polling_rate = metadata_iter.next().unwrap().parse::<u32>().unwrap();
-        let contains_brake_data = metadata_iter.next().unwrap().parse::<u32>().unwrap() == 1;
-        
-        self.front_sus_data = Vec::<u32>::with_capacity(line_count);
-        self.rear_sus_data = Vec::<u32>::with_capacity(line_count);
+        let mut pot_data_is = Vec::<String>::new();
+        let metadata_iter = first_line.split(',');
 
-        (self.rear_brake_data, self.front_brake_data) = match contains_brake_data {
-            true => (Some(Vec::<u32>::new()), Some(Vec::<u32>::new())),
-            false => (None, None)
-        };
+        for md in metadata_iter {
+            let mut tag_rate_iter = md.split(':');
+            let tag = tag_rate_iter.next().expect("Error: Invalid metadata");
+            let rate = tag_rate_iter.next().expect("Error: Invalid metadata").parse::<u32>().expect("Error: Invalid polling rate in metadata");
+            let remap_ref = tag_rate_iter.next().expect("Error: Invalid metadata").to_string();
+
+            pot_data_is.push(tag.to_string());
+            self.raw_pot_datas.insert(tag.to_owned(), RawPotData {
+                remap_ref, polling_rate: rate, data: Vec::new()
+            });
+        }
 
         //does not filter out 
         for line in lines {
             let lineHolder = line.unwrap();
-            let mut vals = lineHolder.split(',');
-            self.rear_sus_data.push(truncate_val(vals.next().unwrap()));
-            self.front_sus_data.push(truncate_val(vals.next().unwrap()));
-
-            if contains_brake_data {
-                self.rear_brake_data.as_mut().unwrap().push(truncate_val(vals.next().unwrap()));
-                self.front_brake_data.as_mut().unwrap().push(truncate_val(vals.next().unwrap()));
+            let vals = lineHolder.split(',');
+            for (i, val) in vals.enumerate() {
+                self.raw_pot_datas.get_mut(&pot_data_is[i]).unwrap().data.push(truncate_val(val));
             }
         }
     }
