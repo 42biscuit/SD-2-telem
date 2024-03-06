@@ -1,14 +1,17 @@
 
-use crate::config_info::{self, ConfigInfo};
+use crate::config_info::{self, ConfigInfo, SuspensionRemapInfo};
+use crate::config_window::ConfigWindow;
 use crate::data::{Data, TelemData, FREQUENCY};
 use crate::graph::bar_graph::BarPoints;
 use crate::graph::disp_vel_graph::DispVelGraph;
 use crate::graph::line_manager::LineManager;
 use crate::graph::suspension_graph::SuspensionGraph;
 use crate::graph::{disp_vel_graph, to_plot_points, Graph};
+use crate::loader::Loader;
 use crate::view::View;
 use crate::Buff;
 
+use egui::{Vec2, ViewportBuilder, ViewportClass, ViewportId};
 use rfd::FileDialog;
 
 use std::env;
@@ -32,24 +35,29 @@ pub struct TelemApp<'a> {
     low_adj_str: String,
     #[serde(skip)]
     high_adj_str: String,
+    #[serde(skip)]
     bottom_out_threshold: f64,
     bottom_outs: u32,
     #[serde(skip)]
     telem_data: Data,
     #[serde(skip)]
+    loader: Loader ,
+    #[serde(skip)]
     sus_view: View<'a>,
     #[serde(skip)]
     config: ConfigInfo,
-    #[serde(skip)]
     show_unmapped_data: bool,
+    #[serde(skip)]
+    config_window: ConfigWindow,
+    #[serde(skip)]
+    current_remap_info: SuspensionRemapInfo,
 }
 
 impl<'a> Default for TelemApp<'a> {
     fn default() -> Self {
         let data = Buff::new();
 
-        let mut config = ConfigInfo::load();
-        let curr_remap_info = config.current_sus_remap_info();
+        let curr_remap_info = SuspensionRemapInfo::default();
 
         Self {
             // Example stuff:
@@ -62,10 +70,13 @@ impl<'a> Default for TelemApp<'a> {
             high_adj_str: curr_remap_info.inverse_without_stroke_len_scale(config_info::DEFAULT_SUS_MAX).to_string(),
             bottom_out_threshold: 0.0,
             bottom_outs: 0,
+            loader: Loader::new(),
             telem_data: Data::new(),
             sus_view: View::new(),
-            config,
+            config: ConfigInfo::load(),
             show_unmapped_data: false,
+            config_window: ConfigWindow::new(),
+            current_remap_info: SuspensionRemapInfo::default(),
         }
     }
 }
@@ -84,68 +95,68 @@ impl<'a> TelemApp<'a> {
 
     pub fn count_bottom_outs(&mut self) {
         self.bottom_outs = 0;
-        let mut above_threshold = self.data.data[0] as f64 > self.bottom_out_threshold;
-        for reading in &self.data.data {
-            let reading_as_f64 = *reading as f64;
-            if reading_as_f64 > self.bottom_out_threshold {
-                if !above_threshold {
-                    self.bottom_outs += 1;
-                }
-                above_threshold = true;
-            } else {
-                above_threshold = false;
-            }
-        }
+        // let mut above_threshold = self.data.data[0] as f64 > self.bottom_out_threshold;
+        // for reading in &self.data.data {
+        //     let reading_as_f64 = *reading as f64;
+        //     if reading_as_f64 > self.bottom_out_threshold {
+        //         if !above_threshold {
+        //             self.bottom_outs += 1;
+        //         }
+        //         above_threshold = true;
+        //     } else {
+        //         above_threshold = false;
+        //     }
+        // }
     }
 
     pub fn reset_data(&mut self) {
-        if self.data.data.is_empty() {
-            return;
-        }
-
         self.telem_data.clear();
 
-        let mut sus_data_f32: Vec<f32> = self.data.data.iter().map(|d| { *d as f32 }).collect();
+        let rs_pot_data = self.loader.get_raw_pot_data("RS".to_string());
+        let fs_pot_data = self.loader.get_raw_pot_data("FS".to_string());
+        let rb_pot_data = self.loader.get_raw_pot_data("RB".to_string());
+        let fb_pot_data = self.loader.get_raw_pot_data("FB".to_string());
+
+        let mut rear_sus_data_f32: Vec<f32> = rs_pot_data.data.iter().map(|d| { *d as f32 }).collect();
+        let mut front_sus_data_f32: Vec<f32> = fs_pot_data.data.iter().map(|d| { *d as f32 }).collect();
 
         if !self.show_unmapped_data {
-            let cur_sus_remap_info = self.config.current_sus_remap_info();
+            let rs_remap_info = self.config.get_sus_remap_info(rs_pot_data.remap_ref.clone());
+            let fs_remap_info = self.config.get_sus_remap_info(fs_pot_data.remap_ref.clone());
 
-            sus_data_f32 = self.telem_data.remapped_1d_with_clamp(&sus_data_f32, cur_sus_remap_info, 0.0, cur_sus_remap_info.stroke_len);
-            self.telem_data.set_count("suspension_counts".to_string(), &sus_data_f32, 15, cur_sus_remap_info.stroke_len as f64, true).unwrap();
-            self.telem_data.set("stroke_len".to_string(), TelemData::F32(cur_sus_remap_info.stroke_len)).unwrap();
+            rear_sus_data_f32 = self.telem_data.remapped_1d_with_clamp(&rear_sus_data_f32, &rs_remap_info, 0.0, 100.0);
+            front_sus_data_f32 = self.telem_data.remapped_1d_with_clamp(&front_sus_data_f32, &fs_remap_info, 0.0, 100.0);
+
+            self.telem_data.set_count("rear_suspension_counts".to_string(), &rear_sus_data_f32, 15, 100.0, true).unwrap();
+            self.telem_data.set_count("front_suspension_counts".to_string(), &front_sus_data_f32, 15, 100.0, true).unwrap();
         } else {
             self.telem_data.set("stroke_len".to_string(), TelemData::F32(config_info::DEFAULT_SUS_MAX - config_info::DEFAULT_SUS_MAX)).unwrap();
-            self.telem_data.set_count("suspension_counts".to_string(), &sus_data_f32, 15, config_info::DEFAULT_SUS_MAX as f64, true).unwrap();
+            self.telem_data.set_count("rear_suspension_counts".to_string(), &rear_sus_data_f32, 15, config_info::DEFAULT_SUS_MAX as f64, true).unwrap();
+            self.telem_data.set_count("front_suspension_counts".to_string(), &front_sus_data_f32, 15, config_info::DEFAULT_SUS_MAX as f64, true).unwrap();
         }
 
+        let rear_sus_data_f32_enum = self.telem_data.enumerated_with_transform(&rear_sus_data_f32, 1.0 / rs_pot_data.polling_rate as f32, 0.0);
+        let front_sus_data_f32_enum = self.telem_data.enumerated_with_transform(&front_sus_data_f32, 1.0 / fs_pot_data.polling_rate as f32, 0.0);
 
-
-
-
-        let sus_data_f32_enum = self.telem_data.enumerated_with_transform(&sus_data_f32, 1.0 / FREQUENCY as f32, 0.0);
-        let line_manager = LineManager::new(to_plot_points(&sus_data_f32_enum));
+        let rear_line_manager = LineManager::new(to_plot_points(&rear_sus_data_f32_enum));
+        let front_line_manager = LineManager::new(to_plot_points(&front_sus_data_f32_enum));
         
-        self.telem_data.set_turning_points("front_disp".to_string(), "front_speed".to_string(), "FTurning".to_string(), &self.data.to_f32v()).unwrap();
-
+        self.telem_data.set("rear_suspension_line".to_string(), TelemData::LineManager(rear_line_manager)).unwrap();
+        self.telem_data.set("front_suspension_line".to_string(), TelemData::LineManager(front_line_manager)).unwrap();
         
-        
-        self.telem_data.set("suspension_line".to_string(), TelemData::LineManager(line_manager)).unwrap();
-
-
-
-        let suspension_graph = SuspensionGraph::init();
-        let histogram = BarPoints::init();
-        let disp_vel = DispVelGraph::init();
-
-        let suspension_graph_box = Box::new(suspension_graph);
-        let histogram_box = Box::new(histogram);
-        let disp_vel_box  = Box::new(disp_vel);
-
+        let suspension_graph = SuspensionGraph::new("rear_suspension_line".to_string(), "front_suspension_line".to_string());
+        let mut rear_histogram = BarPoints::new("rear_suspension_counts".to_string());
+        let mut front_histogram = BarPoints::new("front_suspension_counts".to_string());
+        rear_histogram.set_dims(500.0, 500.0);
+        front_histogram.set_dims(500.0, 500.0);
+        self.telem_data.set_turning_points("front_disp".to_string(), "front_speed".to_string(), "FTurning".to_string(), &rear_sus_data_f32).unwrap();
+        let disp_vel = DispVelGraph::new();
 
         self.sus_view = View::new();
-        self.sus_view.add_graph(disp_vel_box);
-        self.sus_view.add_graph(suspension_graph_box);
-        self.sus_view.add_graph(histogram_box);
+        //self.sus_view.add_graph(0,Box::new(disp_vel));
+        self.sus_view.add_graph(1, Box::new(suspension_graph));
+        self.sus_view.add_graph(2, Box::new(rear_histogram));
+        self.sus_view.add_graph(2, Box::new(front_histogram));
         
         self.count_bottom_outs();
     }
@@ -167,6 +178,9 @@ impl<'a> eframe::App for TelemApp<'a> {
             // The top panel is often a good place for a menu bar:
             egui::menu::bar(ui, |ui| {
                 ui.menu_button("File", |ui| {
+                    if ui.button("Config").clicked() {
+                        self.config_window.open = true;
+                    }
                     if ui.button("Quit").clicked() {
                         //frame.close();
                     }
@@ -178,10 +192,10 @@ impl<'a> eframe::App for TelemApp<'a> {
         });
         egui::SidePanel::left("side_panel").show(ctx, |ui| {
 
-            ui.horizontal(|ui| {
-                ui.label("path to data.");
-                ui.text_edit_singleline(&mut self.path);
-            });
+            // ui.horizontal(|ui| {
+            //     ui.label("path to data.");
+            //     ui.text_edit_singleline(&mut self.path);
+            // });
             ui.heading("File Select");
             
             ui.label(self.path.clone());
@@ -201,13 +215,19 @@ impl<'a> eframe::App for TelemApp<'a> {
                     }
                 }
                 if ui.button("Load").clicked() {
-                    self.data.load(self.path.to_string());
+                    self.loader.load(self.path.to_string());
                     updated_data = true;
                 }
             });
 
+            /*
             ui.separator();
 
+            ui.add(egui::Slider::new(&mut self.value, 0.0..=100.0).text("value"));
+            ui.add(egui::Slider::new(&mut self.time, 1..=10).text("time for loading"));
+            if ui.button("Increment").clicked() {
+                self.value += 1.0;
+            }
 
             ui.heading("Data From Run");
             ui.horizontal(|ui| {
@@ -223,19 +243,32 @@ impl<'a> eframe::App for TelemApp<'a> {
             if ui.button("Recalculate").clicked() {
                 self.count_bottom_outs();
             }
+            */
 
+            ///*
             ui.separator();
+
             ui.heading("Config");
+
+            let mut selected_str = "";
+            egui::ComboBox::new("config_selector", "Select Config Line: ")
+                .selected_text("AAAAA")
+                .show_ui(ui, |ui| {
+                    for (config_key, config_value) in &self.config.sus_remap_info {
+                        ui.selectable_value(&mut selected_str, "", config_key);
+                    }
+                });
 
             let mut stroke_len = 0.0;
             let mut low_adj = 0.0;
             let mut high_adj = 0.0;
-
-            let curr_sus_remap_info = self.config.current_sus_remap_info();
+            
+            //let curr_sus_remap_info = self.config.get_sus_remap_info();
+            let mut curr_sus_remap_info = self.current_remap_info;
 
             ui.horizontal(|ui| {
                 ui.label("Stroke length: ");
-                ui.text_edit_singleline(&mut self.stroke_len_str);
+                //ui.text_edit_singleline(&mut self.stroke_len_str);
             });
 
             ui.horizontal(|ui| {
@@ -291,20 +324,21 @@ impl<'a> eframe::App for TelemApp<'a> {
                     }
                 }
             });
+            //*/
 
-            ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {
-                ui.horizontal(|ui| {
-                    ui.spacing_mut().item_spacing.x = 0.0;
-                    ui.label("powered by ");
-                    ui.hyperlink_to("egui", "https://github.com/emilk/egui");
-                    ui.label(" and ");
-                    ui.hyperlink_to(
-                        "eframe",
-                        "https://github.com/emilk/egui/tree/master/crates/eframe",
-                    );
-                    ui.label(".");
-                });
-            });
+            // ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {
+            //     ui.horizontal(|ui| {
+            //         ui.spacing_mut().item_spacing.x = 0.0;
+            //         ui.label("powered by ");
+            //         ui.hyperlink_to("egui", "https://github.com/emilk/egui");
+            //         ui.label(" and ");
+            //         ui.hyperlink_to(
+            //             "eframe",
+            //             "https://github.com/emilk/egui/tree/master/crates/eframe",
+            //         );
+            //         ui.label(".");
+            //     });
+            // });
         });
 
         if updated_data {
@@ -317,14 +351,16 @@ impl<'a> eframe::App for TelemApp<'a> {
 
             self.sus_view.draw(&self.telem_data, ctx, ui);
 
-            ui.heading("eframe template");
-            ui.hyperlink("https://github.com/emilk/eframe_template");
-            ui.add(egui::github_link_file!(
-                "https://github.com/emilk/eframe_template/blob/master/",
-                "Source code."
-            ));
-            egui::warn_if_debug_build(ui);
+            // ui.heading("eframe template");
+            // ui.hyperlink("https://github.com/emilk/eframe_template");
+            // ui.add(egui::github_link_file!(
+            //     "https://github.com/emilk/eframe_template/blob/master/",
+            //     "Source code."
+            // ));
+            // egui::warn_if_debug_build(ui);
         });
+
+        self.config_window.update(ctx);
 
         if false {
             egui::Window::new("Window").show(ctx, |ui| {
