@@ -310,7 +310,6 @@ impl ToPlotPoint for (f32, f32) {
     }
 }
 
-<<<<<<< HEAD
 impl ToPlotPoint for (f64, f64) {
     fn to_plot_point(&self) -> PlotPoint {
         PlotPoint {
@@ -319,26 +318,15 @@ impl ToPlotPoint for (f64, f64) {
         }
     }
 }
-=======
->>>>>>> c837028fad43bbe54749a214135a5eb0a40667b4
 
 impl ToPlotPoint for (&f64, &f64) {
     fn to_plot_point(&self) -> PlotPoint {
         PlotPoint {
-<<<<<<< HEAD
             x: *self.0 as f64,
             y: *self.1 as f64,
         }
     }
 }
-=======
-            x: *self.0,
-            y: *self.1,
-        }
-    }
-}
-
->>>>>>> c837028fad43bbe54749a214135a5eb0a40667b4
 impl Buff {
     /// constructs new Buff size BUFF_SIZE
     pub fn new() -> Self {

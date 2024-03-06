@@ -80,7 +80,7 @@ impl<'a> Graph<'a> for SuspensionGraph {
                 plot_ui.line(travel_line_u);
             }
             if let Some(turning_points_u) = turning_points {
-                plot_ui.points(Points::new(PlotPoints::Owned(turning_points_u.clone())));
+                plot_ui.points(Points::new(PlotPoints::Owned(turning_points_u.clone())).radius(3.0));
             }
             //plot_ui.line(bottom_out_line);  
         });
