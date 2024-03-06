@@ -1,7 +1,6 @@
 use crate::data::TelemData;
 use egui::{Id, Vec2b};
 use egui_plot::{Plot, PlotPoint, PlotPoints};
-use egui_plot::{Plot, PlotPoint, PlotPoints};
 use egui_plot::{Bar, BarChart};
 
 use super::{to_plot_points, Graph};
