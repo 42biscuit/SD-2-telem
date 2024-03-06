@@ -2,9 +2,10 @@
 use crate::config_info::{self, ConfigInfo};
 use crate::data::{Data, TelemData, FREQUENCY};
 use crate::graph::bar_graph::BarPoints;
+use crate::graph::disp_vel_graph::DispVelGraph;
 use crate::graph::line_manager::LineManager;
 use crate::graph::suspension_graph::SuspensionGraph;
-use crate::graph::{to_plot_points, Graph};
+use crate::graph::{disp_vel_graph, to_plot_points, Graph};
 use crate::view::View;
 use crate::Buff;
 
@@ -117,23 +118,32 @@ impl<'a> TelemApp<'a> {
             self.telem_data.set_count("suspension_counts".to_string(), &sus_data_f32, 15, config_info::DEFAULT_SUS_MAX as f64).unwrap();
         }
 
+
+
+
+
         let sus_data_f32_enum = self.telem_data.enumerated_with_transform(&sus_data_f32, 1.0 / FREQUENCY as f32, 0.0);
         let line_manager = LineManager::new(to_plot_points(&sus_data_f32_enum));
         
-        self.telem_data.set_turning_points("FDispl".to_string(), "FSpeeds".to_string(), "FTurning".to_string(), &self.data.to_f32v()).unwrap();
+        self.telem_data.set_turning_points("front_disp".to_string(), "front_speed".to_string(), "FTurning".to_string(), &self.data.to_f32v()).unwrap();
 
+        
+        
         self.telem_data.set("suspension_line".to_string(), TelemData::LineManager(line_manager)).unwrap();
 
 
 
         let suspension_graph = SuspensionGraph::init();
         let histogram = BarPoints::init();
-
+        let disp_vel = DispVelGraph::init();
 
         let suspension_graph_box = Box::new(suspension_graph);
         let histogram_box = Box::new(histogram);
+        let disp_vel_box  = Box::new(disp_vel);
+
 
         self.sus_view = View::new();
+        self.sus_view.add_graph(disp_vel_box);
         self.sus_view.add_graph(suspension_graph_box);
         self.sus_view.add_graph(histogram_box);
         

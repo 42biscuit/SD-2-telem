@@ -1,6 +1,6 @@
 use crate::data::TelemData;
 use egui::{Id, Vec2b};
-use egui_plot::{Plot, PlotPoint};
+use egui_plot::{Plot, PlotPoint, PlotPoints};
 use egui_plot::{Bar, BarChart};
 
 use super::{to_plot_points, Graph};
@@ -39,26 +39,23 @@ impl <'a> Graph<'a> for DispVelGraph{
         DispVelGraph::new()
     }
     fn draw(&self, data: &crate::data::Data, ctx: &egui::Context, ui: &mut egui::Ui) {
-        let x_disp = data.get_f64v("field".to_string());
-        let y_vel = data.get_f64v("field".to_string());
+        let x_disp = data.get_f64v("front_disp".to_string());
+        let y_vel = data.get_f64v("front_speed".to_string());
 
 
-        let axis_bools_drag = Vec2b::new(true, false);
         let _axis_bools_auto_zoom = Vec2b::new(false, false);
 
         let plot = Plot::new("suspension")
-            .id(Id::new("suspension"))
-            .view_aspect(2.0)
+            .id(Id::new("dist_vel"))
+            .view_aspect(3.0)
             .allow_scroll(false)
             .allow_boxed_zoom(false)
-            .show_grid(false);
+            .show_grid(true);
 
-        let a: Vec<(&f64, &f64)> = x_disp.iter().zip(y_vel.iter()).collect();
+        let a: Vec<(&f64, &f64)> = x_disp.iter().zip(y_vel.iter()).filter(|x| *x.0 > 0.0).collect();
 
-            
         plot.show(ui, |plot_ui| {
-            plot_ui.points(egui_plot::Points::new(to_plot_points( to_plot_points(a))))
-            //plot_ui.line(bottom_out_line);  
+            plot_ui.points(egui_plot::Points::new( PlotPoints::Owned( to_plot_points(&a))).radius(2.0));
         });
     }
 

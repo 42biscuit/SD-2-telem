@@ -86,6 +86,14 @@ impl Data {
         }
 
         panic!("Field does not exist");
+    }   
+    
+    pub fn get_f32v(&self, field: String) -> &Vec<f32> {
+        if let Ok(TelemData::F32V(res)) = self.get(field) {
+            return &res;
+        }
+
+        panic!("Field does not exist");
     }
 
     pub fn get_line_manager(&mut self, field: String) -> &LineManager{
@@ -163,16 +171,18 @@ impl Data {
         }
         let mut max_speeds = Vec::new();
         let mut last = (turning_points[0].1 ) as usize;
+        let mut current ;
 
-        /*for index in 1..turning_points.len()-1 {
-            current = (turning_points[index] )as usize;
-            println!("{:?}, {:?}, {:?}",last, current,turning_points[index].x);
+        for index in 1..turning_points.len()-1 {
+            current = (turning_points[index].1 )as usize;
             if current > last{
                 max_speeds.push(Self::max_speed(&line_choice[last..current].to_vec()));
             }
-
+            
             last = current;
-        }*/
+        }
+        
+        
         
         let mut displacements = Vec::new();
         let mut last = turning_points[0];
@@ -182,20 +192,20 @@ impl Data {
         }
         
         //clean data
-        let (mut clean_disp, mut clean_dist) = (Vec::new(), Vec::new());
-        for  (a,b) in  turning_points.iter_mut().zip(displacements.iter()){
+        let (mut clean_disp, mut clean_points) = (Vec::new(), Vec::new());
+        for  (a,b) in  turning_points.iter().zip(displacements.iter()){
             if b.abs() > 2.0{
-                clean_disp.push(a);
-                clean_dist.push(b);
+                clean_points.push(*a);
+                clean_disp.push(*b);
             }
         }
         
         //self.set_displacements(displacements_field, &turning_points).unwrap();
+        self.set(displacements_field, TelemData::F64V(clean_disp)).unwrap();
         self.set(max_speed_field, TelemData::F64V(max_speeds)).unwrap();
-        println!("turning Points {:?}",clean_disp);
         
 
-        self.set(turning_point_field, TelemData::PlotPointV(to_plot_points(&turning_points))) 
+        self.set(turning_point_field, TelemData::PlotPointV(to_plot_points(&clean_points))) 
     }
 
     /// Sets the Displacement value for the given data
@@ -222,18 +232,18 @@ impl Data {
     }
 
 
-    pub fn max_speed(data:&Vec<PlotPoint>) -> f64 {
+    pub fn max_speed(data:&Vec<f32>) -> f64 {
         let jump = FREQUENCY as usize /10;
-        let mut max = 0.0_f64;
-        let mut last = data[0].y;
+        let mut max = 0.0_f32;
+        let mut last = data[0];
         for index in (1..data.len()-1).step_by(jump){
-            let temp = data[index].y - last;
+            let temp = data[index] - last;
             if temp.abs() > max.abs()  {
                 max = temp;
             } 
-            last = data[index].y;
+            last = data[index];
         }
-        max
+        max as f64
     }
 
 
@@ -290,7 +300,6 @@ impl ToPlotPoint for (u32, u32) {
         }
     }
 }
-
 impl ToPlotPoint for (f32, f32) {
     fn to_plot_point(&self) -> PlotPoint {
         PlotPoint {
@@ -300,6 +309,23 @@ impl ToPlotPoint for (f32, f32) {
     }
 }
 
+impl ToPlotPoint for (f64, f64) {
+    fn to_plot_point(&self) -> PlotPoint {
+        PlotPoint {
+            x: self.0 as f64,
+            y: self.1 as f64,
+        }
+    }
+}
+
+impl ToPlotPoint for (&f64, &f64) {
+    fn to_plot_point(&self) -> PlotPoint {
+        PlotPoint {
+            x: *self.0 as f64,
+            y: *self.1 as f64,
+        }
+    }
+}
 impl Buff {
     /// constructs new Buff size BUFF_SIZE
     pub fn new() -> Self {
