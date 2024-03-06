@@ -39,7 +39,6 @@ pub struct TelemApp<'a> {
     sus_view: View<'a>,
     #[serde(skip)]
     config: ConfigInfo,
-    #[serde(skip)]
     show_unmapped_data: bool,
     #[serde(skip)]
     config_window: ConfigWindow,
