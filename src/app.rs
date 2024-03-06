@@ -29,6 +29,12 @@ pub struct TelemApp<'a> {
     #[serde(skip)]
     value: f64,
     #[serde(skip)]
+    stroke_len_str: String,
+    #[serde(skip)]
+    low_adj_str: String,
+    #[serde(skip)]
+    high_adj_str: String,
+    #[serde(skip)]
     bottom_out_threshold: f64,
     bottom_outs: u32,
     #[serde(skip)]
@@ -42,11 +48,15 @@ pub struct TelemApp<'a> {
     show_unmapped_data: bool,
     #[serde(skip)]
     config_window: ConfigWindow,
+    #[serde(skip)]
+    current_remap_info: SuspensionRemapInfo,
 }
 
 impl<'a> Default for TelemApp<'a> {
     fn default() -> Self {
         let data = Buff::new();
+
+        let curr_remap_info = SuspensionRemapInfo::default();
 
         Self {
             // Example stuff:
@@ -54,6 +64,9 @@ impl<'a> Default for TelemApp<'a> {
             path: "Hello World!".to_owned(),
             data,
             value: 1.0,
+            stroke_len_str: curr_remap_info.stroke_len.to_string(),
+            low_adj_str: curr_remap_info.inverse_without_stroke_len_scale(config_info::DEFAULT_SUS_MIN).to_string(),
+            high_adj_str: curr_remap_info.inverse_without_stroke_len_scale(config_info::DEFAULT_SUS_MAX).to_string(),
             bottom_out_threshold: 0.0,
             bottom_outs: 0,
             loader: Loader::new(),
@@ -62,6 +75,7 @@ impl<'a> Default for TelemApp<'a> {
             config: ConfigInfo::load(),
             show_unmapped_data: false,
             config_window: ConfigWindow::new(),
+            current_remap_info: SuspensionRemapInfo::default(),
         }
     }
 }
@@ -227,20 +241,30 @@ impl<'a> eframe::App for TelemApp<'a> {
             }
             */
 
-            /*
+            ///*
             ui.separator();
 
             ui.heading("Config");
 
+            let mut selected_str = "";
+            egui::ComboBox::new("config_selector", "Select Config Line: ")
+                .selected_text("AAAAA")
+                .show_ui(ui, |ui| {
+                    for (config_key, config_value) in &self.config.sus_remap_info {
+                        ui.selectable_value(&mut selected_str, "", config_key);
+                    }
+                });
+
             let mut stroke_len = 0.0;
             let mut low_adj = 0.0;
             let mut high_adj = 0.0;
-
-            let curr_sus_remap_info = self.config.current_sus_remap_info();
+            
+            //let curr_sus_remap_info = self.config.get_sus_remap_info();
+            let mut curr_sus_remap_info = self.current_remap_info;
 
             ui.horizontal(|ui| {
                 ui.label("Stroke length: ");
-                ui.text_edit_singleline(&mut self.stroke_len_str);
+                //ui.text_edit_singleline(&mut self.stroke_len_str);
             });
 
             ui.horizontal(|ui| {
@@ -296,7 +320,7 @@ impl<'a> eframe::App for TelemApp<'a> {
                     }
                 }
             });
-            */
+            //*/
 
             // ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {
             //     ui.horizontal(|ui| {

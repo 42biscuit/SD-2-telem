@@ -18,6 +18,16 @@ pub struct ConfigInfo {
     pub sus_remap_info: HashMap<String, SuspensionRemapInfo>,
 }
 
+impl Default for SuspensionRemapInfo {
+    fn default() -> SuspensionRemapInfo {
+        SuspensionRemapInfo {
+            stroke_len: 100.0,
+            scale: 1.0,
+            offset: 0.0,
+        }
+    }
+}
+
 impl SuspensionRemapInfo {
     pub fn calc_vals_from_min_and_max(&mut self, new_min: f32, new_max: f32) {
         let diff = new_max - new_min;
