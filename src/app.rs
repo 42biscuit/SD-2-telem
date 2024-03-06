@@ -110,20 +110,26 @@ impl<'a> TelemApp<'a> {
             let cur_sus_remap_info = self.config.current_sus_remap_info();
 
             sus_data_f32 = self.telem_data.remapped_1d_with_clamp(&sus_data_f32, cur_sus_remap_info, 0.0, cur_sus_remap_info.stroke_len);
-            self.telem_data.set_count("suspension_counts".to_string(), &sus_data_f32, 15, cur_sus_remap_info.stroke_len as f64, true);
-            self.telem_data.set("stroke_len".to_string(), TelemData::F32(cur_sus_remap_info.stroke_len));
+            self.telem_data.set_count("suspension_counts".to_string(), &sus_data_f32, 15, cur_sus_remap_info.stroke_len as f64, true).unwrap();
+            self.telem_data.set("stroke_len".to_string(), TelemData::F32(cur_sus_remap_info.stroke_len)).unwrap();
         } else {
-            self.telem_data.set("stroke_len".to_string(), TelemData::F32(config_info::DEFAULT_SUS_MAX - config_info::DEFAULT_SUS_MAX));
-            self.telem_data.set_count("suspension_counts".to_string(), &sus_data_f32, 15, config_info::DEFAULT_SUS_MAX as f64, true);
+            self.telem_data.set("stroke_len".to_string(), TelemData::F32(config_info::DEFAULT_SUS_MAX - config_info::DEFAULT_SUS_MAX)).unwrap();
+            self.telem_data.set_count("suspension_counts".to_string(), &sus_data_f32, 15, config_info::DEFAULT_SUS_MAX as f64, true).unwrap();
         }
 
         let sus_data_f32_enum = self.telem_data.enumerated_with_transform(&sus_data_f32, 1.0 / FREQUENCY as f32, 0.0);
         let line_manager = LineManager::new(to_plot_points(&sus_data_f32_enum));
         
-        self.telem_data.set("suspension_line".to_string(), TelemData::LineManager(line_manager));
-        
+        self.telem_data.set_turning_points("FDispl".to_string(), "FSpeeds".to_string(), "FTurning".to_string(), &self.data.to_f32v()).unwrap();
+
+        self.telem_data.set("suspension_line".to_string(), TelemData::LineManager(line_manager)).unwrap();
+
+
+
         let suspension_graph = SuspensionGraph::init();
         let histogram = BarPoints::init();
+
+
         let suspension_graph_box = Box::new(suspension_graph);
         let histogram_box = Box::new(histogram);
 
@@ -192,11 +198,6 @@ impl<'a> eframe::App for TelemApp<'a> {
 
             ui.separator();
 
-            ui.add(egui::Slider::new(&mut self.value, 0.0..=100.0).text("value"));
-            ui.add(egui::Slider::new(&mut self.time, 1..=10).text("time for loading"));
-            if ui.button("Increment").clicked() {
-                self.value += 1.0;
-            }
 
             ui.heading("Data From Run");
             ui.horizontal(|ui| {

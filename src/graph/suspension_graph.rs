@@ -1,5 +1,5 @@
 use egui::{Context, Id, Ui, Vec2b};
-use egui_plot::{Line, Plot, PlotBounds, PlotMemory, PlotPoints};
+use egui_plot::{Line, Plot, PlotBounds, PlotMemory, PlotPoints, Points};
 
 use crate::{
     data::{Data, TelemData, FREQUENCY},
@@ -20,6 +20,7 @@ impl<'a> Graph<'a> for SuspensionGraph {
     fn draw(&self, data: &Data, ctx: &Context, ui: &mut Ui) {
         let line_manager_res = data.get("suspension_line".to_string());
         let bottom_out_threshold_res = data.get("bottom_out_threshold".to_string());
+        let turning_points_res = data.get("FTurning".to_string());
 
         let mut line_manager = None;
         if let Ok(TelemData::LineManager(lm)) = line_manager_res {
@@ -29,6 +30,11 @@ impl<'a> Graph<'a> for SuspensionGraph {
         let mut bottom_out_threshold = 0.0;
         if let Ok(TelemData::F64(bot)) = bottom_out_threshold_res {
             bottom_out_threshold = *bot;
+        }
+
+        let mut turning_points = None;
+        if let Ok(TelemData::PlotPointV(pts)) = turning_points_res {
+            turning_points = Some(pts);
         }
 
         let axis_bools_drag = Vec2b::new(true, false);
@@ -72,6 +78,9 @@ impl<'a> Graph<'a> for SuspensionGraph {
         plot.show(ui, |plot_ui| {
             if let Some(travel_line_u) = travel_line {
                 plot_ui.line(travel_line_u);
+            }
+            if let Some(turning_points_u) = turning_points {
+                plot_ui.points(Points::new(PlotPoints::Owned(turning_points_u.clone())));
             }
             //plot_ui.line(bottom_out_line);  
         });

@@ -6,6 +6,7 @@ const MAX_POINTS: usize = 1024;
 
 /// Represents a single level of detail, and should only be used as part of a LineManager.
 /// It stores a sampled copy of the original data at a lower resolution.
+#[derive(Clone, Debug)]
 pub struct LineInstance {
     /// How often the instance has sampled from the original data, as an index of 2, (e.g. a period of 3
     /// means it has taken every 8th point, since 2^3=8)
@@ -15,6 +16,7 @@ pub struct LineInstance {
 }
 
 /// Stores a list of data points at multiple resolutions
+#[derive(Clone)]
 pub struct LineManager {
     /// A vector containing the same line at different levels of detail.
     /// Index 0 is original resolution, index 1 is half resolution (every 2nd point), etc.
@@ -145,3 +147,5 @@ impl LineManager {
         0.0
     }
 }
+
+ 

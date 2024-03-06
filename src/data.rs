@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use crate::graph::to_plot_points;
 use std::fs::File;
 use std::io;
 use std::io::prelude::*;
@@ -6,6 +7,8 @@ use std::io::prelude::*;
 pub const BUFF_SIZE: usize = 4500;
 pub const FREQUENCY: f64 = 40.0;
 
+///The minimum period of a compression + rebound in the data. Used for turning point detection
+pub const MIN_PERIOD: f64 = 0.2; 
 /// allows more polymorphic approach to storing different data typed to Data
 pub enum TelemData {
     U32(u32),
@@ -85,6 +88,13 @@ impl Data {
         panic!("Field does not exist");
     }
 
+    pub fn get_line_manager(&mut self, field: String) -> &LineManager{
+        if let Ok(TelemData::LineManager(res)) = self.get(field) {
+            return &res;
+        }
+
+        panic!("Field does not exist");
+    }
     pub fn get_f32(&self, field: String) -> f32 {
         if let Ok(TelemData::F32(res)) = self.get(field) {
             return *res;
@@ -92,6 +102,15 @@ impl Data {
 
         panic!("Field does not exist");
     }
+
+    pub fn get_f64v(&self, field: String) -> &Vec<f64> {
+        if let Ok(TelemData::F64V(res)) = self.get(field) {
+            return &res;
+        }  
+
+        panic!("Field does not exist");
+    }
+
 
     pub fn get_f64pv(&self, field: String) -> &Vec<(f32, f32)> {
         if let Ok(TelemData::F32PV(res)) = self.get(field) {
@@ -111,41 +130,112 @@ impl Data {
     ///
     /// # Return
     /// result of adding the data generated to self
-    pub fn set_turning_points(&mut self, field: String, data: LineManager) -> Result<(), &str> {
+    pub fn set_turning_points(&mut self, displacements_field: String, max_speed_field: String, turning_point_field: String, data: &Vec<f32>) -> Result<(), &str> {
         let mut turning_points = Vec::new();
 
         let line_choice = data;
-        let max_line_points =
-            (line_choice.get_line_instance(0).unwrap().data.len() as f64 / FREQUENCY) * 20.0;
-        let mut index = 1;
-        while line_choice.get_line_instance(index).unwrap().data.len() as f64 >= max_line_points {
-            index += 1;
-        }
-        let line_choice = line_choice.get_line_instance(index).unwrap().data.clone();
+
+        let turning_range = ((FREQUENCY * MIN_PERIOD)/2.0) as usize;
+        println!("turning range {:?}", turning_range);
+        let mut outer_index = turning_range.clone() ;
+
         let mut decreasing = false;
-        turning_points.push(line_choice[0]);
-        if turning_points[0].y > line_choice[1].y {
+        turning_points.push((0.0,line_choice[turning_range]));
+        if turning_points[0].1 > line_choice[5] {
             decreasing = true;
         }
-        let mut outer_index = 5;
-        for plot_point in &line_choice[5..line_choice.len() - 5] {
-            let (mut back_average, mut front_average) = (0.0, 0.0);
 
-            for inner_index in 0..5 {
-                front_average += plot_point.y - line_choice[outer_index + inner_index].y;
-                back_average += plot_point.y - line_choice[outer_index - inner_index].y;
+        for plot_point in &line_choice[turning_range..line_choice.len() - turning_range] {
+            let (mut back_average, mut front_average) = (0.0, 0.0);
+            
+            for inner_index in 0..turning_range {
+                front_average += (plot_point - line_choice[outer_index + inner_index])as f32;
+                back_average += (plot_point - line_choice[outer_index - inner_index]) as f32;
             }
 
             // if decreasing dosent match the direction that the graph is heading in flip it
-            if decreasing == (back_average > front_average) {
+            if decreasing == (back_average > front_average +  (if decreasing == true{-1.0}else{1.0 })) {
                 decreasing ^= true;
-                turning_points.push(plot_point.clone());
+                turning_points.push((outer_index as f32 / 40.0,plot_point.clone()));
             };
 
             outer_index += 1
         }
-        self.set(field, TelemData::PlotPointV(turning_points))
+        let mut max_speeds = Vec::new();
+        let mut last = (turning_points[0].1 ) as usize;
+
+        /*for index in 1..turning_points.len()-1 {
+            current = (turning_points[index] )as usize;
+            println!("{:?}, {:?}, {:?}",last, current,turning_points[index].x);
+            if current > last{
+                max_speeds.push(Self::max_speed(&line_choice[last..current].to_vec()));
+            }
+
+            last = current;
+        }*/
+        
+        let mut displacements = Vec::new();
+        let mut last = turning_points[0];
+        for point in 1..(turning_points.len()-1){
+            displacements.push((turning_points[point].1 - last.1)as f64);
+            last = turning_points[point];
+        }
+        
+        //clean data
+        let (mut clean_disp, mut clean_dist) = (Vec::new(), Vec::new());
+        for  (a,b) in  turning_points.iter_mut().zip(displacements.iter()){
+            if b.abs() > 2.0{
+                clean_disp.push(a);
+                clean_dist.push(b);
+            }
+        }
+        
+        //self.set_displacements(displacements_field, &turning_points).unwrap();
+        self.set(max_speed_field, TelemData::F64V(max_speeds)).unwrap();
+        println!("turning Points {:?}",clean_disp);
+        
+
+        self.set(turning_point_field, TelemData::PlotPointV(to_plot_points(&turning_points))) 
     }
+
+    /// Sets the Displacement value for the given data
+    ///
+    /// # Arguments
+    /// * 'save_field' the feild to save the calculated displacements under
+    /// * 'data' plot poinnts of the data to be used
+    /// # Return 
+    ///
+    /// result of pushing data to the HashMap
+    pub fn set_displacements(&mut self, save_field: String, data:&Vec<(f32,f32)> ) -> Result<(), &str>{
+        let mut displacements = Vec::new();
+        let mut last = data[0];
+        for point in 1..(data.len()-1){
+            displacements.push((data[point].1 - last.1)as f64);
+            last = data[point];
+        }
+        /*let temp = data.clone();
+        let mut  dataC = temp.clone().iter();
+        dataC.next();f
+        displacements = data.iter().zip(dataC).map(|(x1,x2)| x1.y - x2.y).collect();*/
+        println!("disp: {:?}",displacements);
+        self.set(save_field, TelemData::F64V(displacements))
+    }
+
+
+    pub fn max_speed(data:&Vec<PlotPoint>) -> f64 {
+        let jump = FREQUENCY as usize /10;
+        let mut max = 0.0_f64;
+        let mut last = data[0].y;
+        for index in (1..data.len()-1).step_by(jump){
+            let temp = data[index].y - last;
+            if temp.abs() > max.abs()  {
+                max = temp;
+            } 
+            last = data[index].y;
+        }
+        max
+    }
+
 
     /// sets sorts data in set Bins
     /// # Returns
@@ -211,6 +301,16 @@ impl ToPlotPoint for (f32, f32) {
     }
 }
 
+
+impl ToPlotPoint for (&f64, &f64) {
+    fn to_plot_point(&self) -> PlotPoint {
+        PlotPoint {
+            x: *self.0,
+            y: *self.1,
+        }
+    }
+}
+
 impl Buff {
     /// constructs new Buff size BUFF_SIZE
     pub fn new() -> Self {
@@ -242,6 +342,13 @@ impl Buff {
                 None => break,
             }
         }
+    }
+    pub fn to_f32v(&mut self)-> Vec<f32>{
+        let mut r = Vec::new();
+        for i in &self.data{
+            r.push(*i as f32)
+        }
+        r
     }
 }
 
