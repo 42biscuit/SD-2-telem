@@ -4,7 +4,6 @@ use egui_plot::Plot;
 use egui_plot::{Bar, BarChart};
 
 use super::Graph;
-pub const NUMBER_BARS: usize = 15;
 const BAR_WIDTH: f64 = 1.0;
 
 pub struct BarPoints {

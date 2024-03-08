@@ -1,17 +1,16 @@
 
 use crate::config_info::{self, ConfigInfo, SuspensionRemapInfo};
 use crate::config_window::ConfigWindow;
-use crate::data::{Data, TelemData, FREQUENCY};
+use crate::data::{Data, TelemData};
 use crate::graph::bar_graph::BarPoints;
 use crate::graph::disp_vel_graph::DispVelGraph;
 use crate::graph::line_manager::LineManager;
 use crate::graph::suspension_graph::SuspensionGraph;
-use crate::graph::{disp_vel_graph, to_plot_points, Graph};
+use crate::graph::to_plot_points;
 use crate::loader::Loader;
 use crate::view::View;
 use crate::Buff;
 
-use egui::{Vec2, ViewportBuilder, ViewportClass, ViewportId};
 use rfd::FileDialog;
 
 use std::env;
@@ -127,12 +126,12 @@ impl<'a> TelemApp<'a> {
             rear_sus_data_f32 = self.telem_data.remapped_1d_with_clamp(&rear_sus_data_f32, &rs_remap_info, 0.0, 100.0);
             front_sus_data_f32 = self.telem_data.remapped_1d_with_clamp(&front_sus_data_f32, &fs_remap_info, 0.0, 100.0);
 
-            self.telem_data.set_count("rear_suspension_counts".to_string(), &rear_sus_data_f32, 15, 100.0, true).unwrap();
-            self.telem_data.set_count("front_suspension_counts".to_string(), &front_sus_data_f32, 15, 100.0, true).unwrap();
+            self.telem_data.set_count("rear_suspension_counts".to_string(), &rear_sus_data_f32, 16, 100.0, true).unwrap();
+            self.telem_data.set_count("front_suspension_counts".to_string(), &front_sus_data_f32, 16, 100.0, true).unwrap();
         } else {
             self.telem_data.set("stroke_len".to_string(), TelemData::F32(config_info::DEFAULT_SUS_MAX - config_info::DEFAULT_SUS_MAX)).unwrap();
-            self.telem_data.set_count("rear_suspension_counts".to_string(), &rear_sus_data_f32, 15, config_info::DEFAULT_SUS_MAX as f64, true).unwrap();
-            self.telem_data.set_count("front_suspension_counts".to_string(), &front_sus_data_f32, 15, config_info::DEFAULT_SUS_MAX as f64, true).unwrap();
+            self.telem_data.set_count("rear_suspension_counts".to_string(), &rear_sus_data_f32, 16, config_info::DEFAULT_SUS_MAX as f64, true).unwrap();
+            self.telem_data.set_count("front_suspension_counts".to_string(), &front_sus_data_f32, 16, config_info::DEFAULT_SUS_MAX as f64, true).unwrap();
         }
 
         let rear_sus_data_f32_enum = self.telem_data.enumerated_with_transform(&rear_sus_data_f32, 1.0 / rs_pot_data.polling_rate as f32, 0.0);

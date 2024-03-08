@@ -254,9 +254,9 @@ impl Data {
     pub fn set_count(&mut self, field: String, data: &Vec<f32>, bin_count: usize, max_val: f64, reverse: bool) -> Result<(), &str> {
         let mut data_count = vec![0u32; bin_count];
         for point in data.iter(){
-            let mut index = ((*point as f64/max_val) * (bin_count as f64)).round() as usize;
+            let mut index = ((*point as f64/max_val) * (bin_count as f64-1.0)).round() as usize;
             index = usize::clamp(index, 0, bin_count - 1);
-            if reverse { index = bin_count - 1 - index ;}
+            if reverse {index = bin_count -1 - index ;}
             data_count[index] += 1;
         }
 

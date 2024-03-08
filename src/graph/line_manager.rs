@@ -1,6 +1,5 @@
 use egui_plot::{Line, PlotPoint, PlotPoints};
 
-use crate::data::FREQUENCY;
 
 const MAX_POINTS: usize = 1024;
 
