@@ -10,6 +10,7 @@ pub const FREQUENCY: f64 = 40.0;
 ///The minimum period of a compression + rebound in the data. Used for turning point detection
 pub const MIN_PERIOD: f64 = 0.2; 
 /// allows more polymorphic approach to storing different data typed to Data
+#[allow(dead_code)]
 pub enum TelemData {
     U32(u32),
     U32V(Vec<u32>),
@@ -24,7 +25,7 @@ pub enum TelemData {
     LineManager(LineManager),
 }
 /// Hash map containing multipil data entries
-pub struct Data {
+ pub struct Data {
     /// fields, hashmap holding all telem data
     pub fields: HashMap<String, TelemData>,
 }
