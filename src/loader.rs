@@ -53,6 +53,7 @@ impl Loader {
 
         //does not filter out 
         for line in lines {
+            
             let lineHolder = line.unwrap();
             let vals = lineHolder.split(',');
             for (i, val) in vals.enumerate() {
@@ -65,6 +66,7 @@ impl Loader {
 fn truncate_val(val_str: &str) -> u32 {
     let end_i = val_str.find(".").unwrap();
     val_str.slice(0 as usize..end_i).parse::<u32>().unwrap()
+    
 }
 
 trait StringUtils {

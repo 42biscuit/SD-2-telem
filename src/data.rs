@@ -286,7 +286,6 @@ impl Data {
 }
 
 
-pub const MAX_DATA_VALUE: f64 = 60.0;
 
 #[derive(Clone)]
 
