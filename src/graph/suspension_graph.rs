@@ -2,7 +2,7 @@ use egui::{Context, Id, Ui, Vec2b};
 use egui_plot::{Line, Plot, PlotBounds, PlotMemory, PlotPoints, Points};
 
 use crate::{
-    data::{Data, TelemData, FREQUENCY},
+    data::{Data, TelemData},
     graph::Graph,
 };
 
@@ -84,14 +84,14 @@ impl<'a> Graph<'a> for SuspensionGraph {
         
         if let Some(lm) = rear_line_manager {
             rear_travel_line = lm.gen_line(
-                extremes[0] * FREQUENCY as f64,
-                extremes[1] * FREQUENCY as f64,
+                extremes[0],
+                extremes[1],
             );
         }
         if let Some(lm) = front_line_manager {
             front_travel_line = lm.gen_line(
-                extremes[0] * FREQUENCY as f64,
-                extremes[1] * FREQUENCY as f64,
+                extremes[0],
+                extremes[1],
             );
         }
 
@@ -102,9 +102,9 @@ impl<'a> Graph<'a> for SuspensionGraph {
             if let Some(travel_line_u) = front_travel_line {
                 plot_ui.line(travel_line_u);
             }
-            if let Some(turning_points_u) = turning_points {
-                plot_ui.points(Points::new(PlotPoints::Owned(turning_points_u.clone())).radius(3.0));
-            }
+            // if let Some(turning_points_u) = turning_points {
+            //     plot_ui.points(Points::new(PlotPoints::Owned(turning_points_u.clone())).radius(3.0));
+            // }
             //plot_ui.line(bottom_out_line);  
         });
     }

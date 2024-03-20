@@ -137,8 +137,8 @@ impl<'a> TelemApp<'a> {
         let rear_sus_data_f32_enum = self.telem_data.enumerated_with_transform(&rear_sus_data_f32, 1.0 / rs_pot_data.polling_rate as f32, 0.0);
         let front_sus_data_f32_enum = self.telem_data.enumerated_with_transform(&front_sus_data_f32, 1.0 / fs_pot_data.polling_rate as f32, 0.0);
 
-        let rear_line_manager = LineManager::new(to_plot_points(&rear_sus_data_f32_enum));
-        let front_line_manager = LineManager::new(to_plot_points(&front_sus_data_f32_enum));
+        let rear_line_manager = LineManager::new(to_plot_points(&rear_sus_data_f32_enum), rs_pot_data.polling_rate as f64);
+        let front_line_manager = LineManager::new(to_plot_points(&front_sus_data_f32_enum), fs_pot_data.polling_rate as f64);
         
         self.telem_data.set("rear_suspension_line".to_string(), TelemData::LineManager(rear_line_manager)).unwrap();
         self.telem_data.set("front_suspension_line".to_string(), TelemData::LineManager(front_line_manager)).unwrap();

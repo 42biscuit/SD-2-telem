@@ -20,6 +20,8 @@ pub struct LineManager {
     /// A vector containing the same line at different levels of detail.
     /// Index 0 is original resolution, index 1 is half resolution (every 2nd point), etc.
     instances: Vec<LineInstance>,
+    /// The polling rate of the data for the line
+    polling_rate: f64,
 }
 
 impl LineInstance {
@@ -67,7 +69,7 @@ impl LineManager {
     /// # Returns
     ///
     /// A new LineManager
-    pub fn new(data: Vec<PlotPoint>) -> LineManager {
+    pub fn new(data: Vec<PlotPoint>, polling_rate: f64) -> LineManager {
         let data_len = data.len();
         let max_period_f = (data_len as f64 / MAX_POINTS as f64).log2();
         let max_period = u32::max(max_period_f as u32 + 2, 1);
@@ -94,6 +96,7 @@ impl LineManager {
 
         LineManager {
             instances: instances,
+            polling_rate,
         }
     }
 
@@ -114,7 +117,7 @@ impl LineManager {
     /// None otherwise
     pub fn gen_line(&self, min: f64, max: f64) -> Option<Line> {
         for i in &self.instances {
-            let indices = i.get_points_in_range(min, max);
+            let indices = i.get_points_in_range(min * self.polling_rate, max * self.polling_rate);
             let line_len = indices.1 - indices.0;
 
             if indices.1 - indices.0 > MAX_POINTS {
@@ -125,7 +128,7 @@ impl LineManager {
 
             line_points.clone_from_slice(&i.data[indices.0..indices.1]);
 
-            //println!("LOD: {}, Points: {}", i.period, line_len);
+            //println!("LOD: {}, Points: {}, between: {:.2} and {:.2}", i.period, line_len, min, max);
 
             return Some(Line::new(PlotPoints::Owned(line_points)));
         }
