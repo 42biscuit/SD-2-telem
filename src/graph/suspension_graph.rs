@@ -1,5 +1,5 @@
 use egui::{Context, Id, Ui, Vec2b};
-use egui_plot::{Line, Plot, PlotBounds, PlotMemory, PlotPoints, Points};
+use egui_plot::{Legend, Line, Plot, PlotBounds, PlotMemory, PlotPoints, Points};
 
 use crate::{
     data::{Data, TelemData},
@@ -52,6 +52,8 @@ impl<'a> Graph<'a> for SuspensionGraph {
         let axis_bools_drag = Vec2b::new(true, false);
         let _axis_bools_auto_zoom = Vec2b::new(false, false);
 
+        let legend = Legend::default();
+
         let plot = Plot::new("suspension")
             .id(Id::new("suspension"))
             .view_aspect(5.0)
@@ -61,7 +63,8 @@ impl<'a> Graph<'a> for SuspensionGraph {
             .allow_zoom(axis_bools_drag)
             .show_grid(false)
             .include_y(0.0)
-            .include_y(100.0);
+            .include_y(100.0)
+            .legend(legend);
             //.include_y(data.get_f32("suspension_min".to_string()))
             //.include_y(data.get_f32("suspension_max".to_string()));
 
@@ -97,10 +100,10 @@ impl<'a> Graph<'a> for SuspensionGraph {
 
         plot.show(ui, |plot_ui| {
             if let Some(travel_line_u) = rear_travel_line {
-                plot_ui.line(travel_line_u);
+                plot_ui.line(travel_line_u.name("Rear Suspension"));
             }
             if let Some(travel_line_u) = front_travel_line {
-                plot_ui.line(travel_line_u);
+                plot_ui.line(travel_line_u.name("Front Suspension"));
             }
             // if let Some(turning_points_u) = turning_points {
             //     plot_ui.points(Points::new(PlotPoints::Owned(turning_points_u.clone())).radius(3.0));
