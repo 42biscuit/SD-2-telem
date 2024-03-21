@@ -88,9 +88,10 @@ impl ConfigInfo {
 
     pub fn set_sus_remap_info(&mut self, key: String, info: SuspensionRemapInfo) {
         self.sus_remap_info.insert(key, info).expect("Error: Suspension remap info not found");
+        //self.sus_remap_info.entry(key).or_insert(info);
     }
 
-    pub fn get_sus_remap_info(&self, key: String) -> SuspensionRemapInfo {
-        *self.sus_remap_info.get(&key).expect("Error: Suspension remap info not found")
+    pub fn get_sus_remap_info(&self, key: String) -> Option<SuspensionRemapInfo> {
+        self.sus_remap_info.get(&key).copied()
     }
 }

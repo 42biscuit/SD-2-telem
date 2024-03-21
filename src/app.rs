@@ -50,6 +50,16 @@ pub struct TelemApp<'a> {
     config_window: ConfigWindow,
     #[serde(skip)]
     current_remap_info: SuspensionRemapInfo,
+    #[serde(skip)]
+    current_remap_info_ref: String,
+    #[serde(skip)]
+    current_remap_info_low: String,
+    #[serde(skip)]
+    current_remap_info_high: String,
+    #[serde(skip)]
+    current_remap_info_len: String,
+    #[serde(skip)]
+    current_remap_info_new: String,
 }
 
 impl<'a> Default for TelemApp<'a> {
@@ -76,6 +86,11 @@ impl<'a> Default for TelemApp<'a> {
             show_unmapped_data: false,
             config_window: ConfigWindow::new(),
             current_remap_info: SuspensionRemapInfo::default(),
+            current_remap_info_ref: "Pick a remap reference".to_string(),
+            current_remap_info_low: String::new(),
+            current_remap_info_high: String::new(),
+            current_remap_info_len: String::new(),
+            current_remap_info_new: String::new(),
         }
     }
 }
@@ -120,8 +135,8 @@ impl<'a> TelemApp<'a> {
         let mut front_sus_data_f32: Vec<f32> = fs_pot_data.data.iter().map(|d| { *d as f32 }).collect();
 
         if !self.show_unmapped_data {
-            let rs_remap_info = self.config.get_sus_remap_info(rs_pot_data.remap_ref.clone());
-            let fs_remap_info = self.config.get_sus_remap_info(fs_pot_data.remap_ref.clone());
+            let rs_remap_info = self.config.get_sus_remap_info(rs_pot_data.remap_ref.clone()).expect("Error: Suspension remap info not found");
+            let fs_remap_info = self.config.get_sus_remap_info(fs_pot_data.remap_ref.clone()).expect("Error: Suspension remap info not found");
 
             rear_sus_data_f32 = self.telem_data.remapped_1d_with_clamp(&rear_sus_data_f32, &rs_remap_info, 0.0, 100.0);
             front_sus_data_f32 = self.telem_data.remapped_1d_with_clamp(&front_sus_data_f32, &fs_remap_info, 0.0, 100.0);
@@ -244,17 +259,15 @@ impl<'a> eframe::App for TelemApp<'a> {
             }
             */
 
-            ///*
             ui.separator();
 
             ui.heading("Config");
 
-            let mut selected_str = "";
-            egui::ComboBox::new("config_selector", "Select Config Line: ")
-                .selected_text("AAAAA")
+            egui::ComboBox::new("config_selector", "Select Config Line")
+                .selected_text(self.current_remap_info_ref.clone())
                 .show_ui(ui, |ui| {
-                    for (config_key, config_value) in &self.config.sus_remap_info {
-                        ui.selectable_value(&mut selected_str, "", config_key);
+                    for (config_key, _) in &self.config.sus_remap_info {
+                        ui.selectable_value(&mut self.current_remap_info_ref, config_key.to_string(), config_key);
                     }
                 });
 
@@ -263,50 +276,58 @@ impl<'a> eframe::App for TelemApp<'a> {
             let mut high_adj = 0.0;
             
             //let curr_sus_remap_info = self.config.get_sus_remap_info();
-            let mut curr_sus_remap_info = self.current_remap_info;
+            let mut remap_info_selected = false;
+            let mut curr_sus_remap_info = SuspensionRemapInfo::default();
+            if let Some(csri) = self.config.get_sus_remap_info(self.current_remap_info_ref.clone()) {
+                remap_info_selected = true;
+                curr_sus_remap_info = csri
+            }
 
             ui.horizontal(|ui| {
                 ui.label("Stroke length: ");
-                //ui.text_edit_singleline(&mut self.stroke_len_str);
+                ui.text_edit_singleline(&mut self.current_remap_info_len);
             });
 
             ui.horizontal(|ui| {
                 ui.label("Low threshold: ");
-                ui.text_edit_singleline(&mut self.low_adj_str);
+                ui.text_edit_singleline(&mut self.current_remap_info_low);
             });
 
             ui.horizontal(|ui| {
                 ui.label("High threshold: ");
-                ui.text_edit_singleline(&mut self.high_adj_str);
+                ui.text_edit_singleline(&mut self.current_remap_info_high);
             });
 
             ui.horizontal(|ui| {
                 if ui.button("Recalculate").clicked() {
                     let mut incorrect_formatting = false;
                     
-                    if let Ok(stroke_len_res) = self.stroke_len_str.parse::<f32>() {
+                    if let Ok(stroke_len_res) = self.current_remap_info_len.parse::<f32>() {
                         stroke_len = stroke_len_res;
                     } else {
                         incorrect_formatting = true;
                     }
                     
-                    if let Ok(low_res) = self.low_adj_str.parse::<f32>() {
+                    if let Ok(low_res) = self.current_remap_info_low.parse::<f32>() {
                         low_adj = low_res;
                     } else {
                         incorrect_formatting = true;
                     }
                     
-                    if let Ok(high_res) = self.high_adj_str.parse::<f32>() {
+                    if let Ok(high_res) = self.current_remap_info_high.parse::<f32>() {
                         high_adj = high_res;
                     } else {
                         incorrect_formatting = true;
                     }
     
-                    if incorrect_formatting {
+                    if !remap_info_selected {
+                        ui.label("Error: No remap info selected");
+                    } else if incorrect_formatting {
                         ui.label("Error: Incorrect Formatting");
                     } else {
                         curr_sus_remap_info.stroke_len = stroke_len;
                         curr_sus_remap_info.calc_vals_from_min_and_max(low_adj, high_adj);
+                        self.config.set_sus_remap_info(self.current_remap_info_ref.clone(), curr_sus_remap_info);
                         updated_data = true;
                     }
                 }
@@ -323,7 +344,15 @@ impl<'a> eframe::App for TelemApp<'a> {
                     }
                 }
             });
-            //*/
+
+            ui.horizontal(|ui| {
+                ui.label("New remap info name: ");
+                ui.text_edit_singleline(&mut self.current_remap_info_new);
+
+                if ui.button("Add").clicked() {
+                    self.config.add_sus_remap_info(self.current_remap_info_new.clone(), SuspensionRemapInfo::default())
+                }
+            });
 
             // ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {
             //     ui.horizontal(|ui| {
