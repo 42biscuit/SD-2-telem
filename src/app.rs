@@ -163,7 +163,7 @@ impl<'a> TelemApp<'a> {
         let mut front_histogram = BarPoints::new("front_suspension_counts".to_string());
         rear_histogram.set_dims(500.0, 500.0);
         front_histogram.set_dims(500.0, 500.0);
-        self.telem_data.set_turning_points("front_disp".to_string(), "front_speed".to_string(), "FTurning".to_string(), &rear_sus_data_f32).unwrap();
+        //self.telem_data.set_turning_points("front_disp".to_string(), "front_speed".to_string(), "FTurning".to_string(), &rear_sus_data_f32).unwrap();
         let disp_vel = DispVelGraph::new();
 
         self.sus_view = View::new();
