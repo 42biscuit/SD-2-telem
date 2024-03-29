@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use crate::graph::to_plot_points;
 use std::fs::File;
-use std::io;
+use std::{io, thread};
 use std::io::prelude::*;
 
 pub const BUFF_SIZE: usize = 4500;
@@ -81,6 +81,14 @@ impl Data {
         average
     }
 
+    pub fn data_average_raw(&self , data:&Vec<f32>)-> f32{
+        let mut average = 0.0;
+        for (size, point) in data.iter().enumerate() {
+            average += (point - average) / (size as f32+1.0);
+        }
+        average
+    }
+
     pub fn get_line_manager(&self, field: String) -> &LineManager {
         if let Ok(TelemData::LineManager(res)) = self.get(field) {
             return &res;
@@ -111,6 +119,13 @@ impl Data {
         }
 
         panic!("Field does not exist");
+    }
+
+    pub fn get_f32_err(&self, field: String) -> Option<f32> {
+        if let Ok(TelemData::F32(res)) = self.get(field) {
+            return Some(*res);
+        }
+        None
     }
 
     pub fn get_f64v(&self, field: String) -> &Vec<f64> {

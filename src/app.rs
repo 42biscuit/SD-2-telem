@@ -11,6 +11,8 @@ use crate::loader::Loader;
 use crate::view::View;
 use crate::Buff;
 
+use std::collections::HashMap;
+
 use rfd::FileDialog;
 
 use std::env;
@@ -171,7 +173,10 @@ impl<'a> TelemApp<'a> {
         self.sus_view.add_graph(1, Box::new(suspension_graph));
         self.sus_view.add_graph(2, Box::new(rear_histogram));
         self.sus_view.add_graph(2, Box::new(front_histogram));
-        
+
+
+        self.telem_data.set("front_dyn_sag".to_string(), TelemData::F32(self.telem_data.data_average_raw(&front_sus_data_f32))).unwrap();
+        self.telem_data.set("rear_dyn_sag".to_string(), TelemData::F32(self.telem_data.data_average_raw(&rear_sus_data_f32))).unwrap();
         self.count_bottom_outs();
     }
 }
@@ -234,30 +239,6 @@ impl<'a> eframe::App for TelemApp<'a> {
                 }
             });
 
-            /*
-            ui.separator();
-
-            ui.add(egui::Slider::new(&mut self.value, 0.0..=100.0).text("value"));
-            ui.add(egui::Slider::new(&mut self.time, 1..=10).text("time for loading"));
-            if ui.button("Increment").clicked() {
-                self.value += 1.0;
-            }
-
-            ui.heading("Data From Run");
-            ui.horizontal(|ui| {
-                ui.label("Bottom outs: ");
-                ui.label(self.bottom_outs.to_string());
-            });
-            ui.horizontal(|ui| {
-                ui.label("Bottom threshhold: ");
-                ui.add(
-                    egui::Slider::new(&mut self.bottom_out_threshold, 0.0..=60.0).text("Threshold"),
-                );
-            });
-            if ui.button("Recalculate").clicked() {
-                self.count_bottom_outs();
-            }
-            */
 
             ui.separator();
 
@@ -354,19 +335,29 @@ impl<'a> eframe::App for TelemApp<'a> {
                 }
             });
 
-            // ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {
-            //     ui.horizontal(|ui| {
-            //         ui.spacing_mut().item_spacing.x = 0.0;
-            //         ui.label("powered by ");
-            //         ui.hyperlink_to("egui", "https://github.com/emilk/egui");
-            //         ui.label(" and ");
-            //         ui.hyperlink_to(
-            //             "eframe",
-            //             "https://github.com/emilk/egui/tree/master/crates/eframe",
-            //         );
-            //         ui.label(".");
-            //     });
-            // });
+            ui.heading("Suspension information");
+            ui.heading("Suspension Data");
+            ui.label("dynamic sag");
+
+            let (f_average,r_average);
+
+            match  self.telem_data.get_f32_err("front_dyn_sag".to_string()){
+                Some(val) => f_average = val,
+                None => f_average = 1000.0,
+            }  
+            match  self.telem_data.get_f32_err("rear_dyn_sag".to_string()){
+                Some(val) => r_average = val,
+                None => r_average = 1000.0,
+            }
+
+            ui.horizontal(|ui|{
+                ui.label("front: ");
+                ui.label(f_average.to_string());
+                ui.label("    rear: ");
+                ui.label(r_average.to_string());
+            });
+
+
         });
 
         if updated_data {
