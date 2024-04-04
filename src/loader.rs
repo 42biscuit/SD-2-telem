@@ -44,7 +44,7 @@ impl Loader {
             let tag = tag_rate_iter.next().expect("Error: Invalid metadata");
             let rate = tag_rate_iter.next().expect("Error: Invalid metadata").parse::<u32>().expect("Error: Invalid polling rate in metadata");
             let remap_ref = tag_rate_iter.next().expect("Error: Invalid metadata").to_string();
-
+            println!("{:?}",&rate);
             pot_data_is.push(tag.to_string());
             self.raw_pot_datas.insert(tag.to_owned(), RawPotData {
                 remap_ref, polling_rate: rate, data: Vec::new()

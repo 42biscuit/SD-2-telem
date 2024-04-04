@@ -23,7 +23,7 @@ impl Default for SuspensionRemapInfo {
         SuspensionRemapInfo {
             stroke_len: 100.0,
             scale: 1.0,
-            offset: 0.0,
+            offset: 1.0,
         }
     }
 }  
@@ -36,8 +36,8 @@ impl SuspensionRemapInfo {
     }
 
     pub fn remap(&self, val: f32) -> f32 {
-        (val * self.scale + self.offset) * (MAPPED_MAX / DEFAULT_SUS_DIFF)
-    }
+        ((val - self.offset) / 850.0) * 100.0
+    }   
 
     pub fn min(&self) -> f32 {
         self.remap(DEFAULT_SUS_MIN)
@@ -52,10 +52,10 @@ impl SuspensionRemapInfo {
     }
 
     pub fn inverse_without_stroke_len_scale(&self, val: f32) -> f32 {
-        (val - self.offset) / self.scale
+        ((val - self.offset) / 853.0) * 100.0
     }
-}
 
+}
 impl ConfigInfo {
     pub fn load_blank() -> ConfigInfo {
         ConfigInfo {

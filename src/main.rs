@@ -8,6 +8,8 @@ use egui::{Style, Visuals};
 fn main() -> eframe::Result<()> {
     // Log to stdout (if you run with `RUST_LOG=debug`).
 
+    use sd2_telem::ConfigInfo;
+
     tracing_subscriber::fmt::init();
 
     let native_options = eframe::NativeOptions::default();
@@ -16,13 +18,30 @@ fn main() -> eframe::Result<()> {
         visuals: Visuals::dark(),
         ..Style::default()
     };
+    let style2s = Style {
+        visuals: Visuals::dark(),
+        ..Style::default()
+    };
 
+
+    let mut initial_config = ConfigInfo::load_blank();
+    
+    eframe::run_native(
+        "SD2 Telemetry Config Wondow",
+        native_options.clone(), 
+        Box::new(|cc|{
+            cc.egui_ctx.set_style(style);
+            Box::new(sd2_telem::InitialConfig::new(cc))
+        })
+    ).unwrap();
+    
+    
     eframe::run_native(
         "SD2 Telemetry Software",
         native_options,
-        Box::new(|cc| {
-            cc.egui_ctx.set_style(style);
-            Box::new(sd2_telem::TelemApp::new(cc))
+        Box::new(|cd| {
+            cd.egui_ctx.set_style(style2s);
+            Box::new(sd2_telem::TelemApp::new_add_config(cd, initial_config))
         }),
     )
 }

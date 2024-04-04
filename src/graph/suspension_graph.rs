@@ -28,7 +28,7 @@ impl<'a> Graph<'a> for SuspensionGraph {
         //let bottom_out_threshold_res = data.get("bottom_out_threshold".to_string());
         let line_manager_res = data.get("suspension_line".to_string());
         let bottom_out_threshold_res = data.get("bottom_out_threshold".to_string());
-        let turning_points_res = data.get("FTurning".to_string());
+        let turning_points_res = data.get("rear_turning".to_string());
 
         let mut rear_line_manager = None;
         if let Ok(TelemData::LineManager(lm)) = rear_line_manager_res {
@@ -105,9 +105,9 @@ impl<'a> Graph<'a> for SuspensionGraph {
             if let Some(travel_line_u) = front_travel_line {
                 plot_ui.line(travel_line_u.name("Front Suspension"));
             }
-            // if let Some(turning_points_u) = turning_points {
-            //     plot_ui.points(Points::new(PlotPoints::Owned(turning_points_u.clone())).radius(3.0));
-            // }
+            if let Some(turning_points_u) = turning_points {
+                plot_ui.points(Points::new(PlotPoints::Owned(turning_points_u.clone())).radius(3.0));
+            }
             //plot_ui.line(bottom_out_line);  
         });
     }

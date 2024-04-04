@@ -54,14 +54,7 @@ pub struct TelemApp<'a> {
     current_remap_info: SuspensionRemapInfo,
     #[serde(skip)]
     current_remap_info_ref: String,
-    #[serde(skip)]
-    current_remap_info_low: String,
-    #[serde(skip)]
-    current_remap_info_high: String,
-    #[serde(skip)]
-    current_remap_info_len: String,
-    #[serde(skip)]
-    current_remap_info_new: String,
+
 }
 
 impl<'a> Default for TelemApp<'a> {
@@ -89,10 +82,6 @@ impl<'a> Default for TelemApp<'a> {
             config_window: ConfigWindow::new(),
             current_remap_info: SuspensionRemapInfo::default(),
             current_remap_info_ref: "Pick a remap reference".to_string(),
-            current_remap_info_low: String::new(),
-            current_remap_info_high: String::new(),
-            current_remap_info_len: String::new(),
-            current_remap_info_new: String::new(),
         }
     }
 }
@@ -108,6 +97,21 @@ impl<'a> TelemApp<'a> {
 
         Default::default()
     }
+
+    pub fn new_add_config(cc:&eframe::CreationContext<'_>,config:ConfigInfo) -> Self {
+
+        // Load previous app state (if any).
+        // Note that you must enable the `persistence` feature for this to work.
+        if let Some(storage) = cc.storage {
+            return eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default();
+        }
+
+        let mut a =  Self::default();
+        a.config = config.clone();
+        
+        a
+    }
+
 
     pub fn count_bottom_outs(&mut self) {
         self.bottom_outs = 0;
@@ -130,6 +134,7 @@ impl<'a> TelemApp<'a> {
 
         let rs_pot_data = self.loader.get_raw_pot_data("RS".to_string());
         let fs_pot_data = self.loader.get_raw_pot_data("FS".to_string());
+        println!("{:?}, {:?}", rs_pot_data.remap_ref,fs_pot_data.remap_ref);
         let rb_pot_data = self.loader.get_raw_pot_data("RB".to_string());
         let fb_pot_data = self.loader.get_raw_pot_data("FB".to_string());
 
@@ -143,14 +148,16 @@ impl<'a> TelemApp<'a> {
             rear_sus_data_f32 = self.telem_data.remapped_1d_with_clamp(&rear_sus_data_f32, &rs_remap_info, 0.0, 100.0);
             front_sus_data_f32 = self.telem_data.remapped_1d_with_clamp(&front_sus_data_f32, &fs_remap_info, 0.0, 100.0);
 
-            self.telem_data.set_count("rear_suspension_counts".to_string(), &rear_sus_data_f32, 16, 100.0, true).unwrap();
-            self.telem_data.set_count("front_suspension_counts".to_string(), &front_sus_data_f32, 16, 100.0, true).unwrap();
+            self.telem_data.set_count("rear_suspension_counts".to_string(), &rear_sus_data_f32, 16, 100.0, false).unwrap();
+            self.telem_data.set_count("front_suspension_counts".to_string(), &front_sus_data_f32, 16, 100.0, false).unwrap();
         } else {
             self.telem_data.set("stroke_len".to_string(), TelemData::F32(config_info::DEFAULT_SUS_MAX - config_info::DEFAULT_SUS_MAX)).unwrap();
-            self.telem_data.set_count("rear_suspension_counts".to_string(), &rear_sus_data_f32, 16, config_info::DEFAULT_SUS_MAX as f64, true).unwrap();
-            self.telem_data.set_count("front_suspension_counts".to_string(), &front_sus_data_f32, 16, config_info::DEFAULT_SUS_MAX as f64, true).unwrap();
+            self.telem_data.set_count("rear_suspension_counts".to_string(), &rear_sus_data_f32, 16, config_info::DEFAULT_SUS_MAX as f64, false).unwrap();
+            self.telem_data.set_count("front_suspension_counts".to_string(), &front_sus_data_f32, 16, config_info::DEFAULT_SUS_MAX as f64, false).unwrap();
         }
-
+        self.telem_data.set_turning_points("rear_rebound".to_string(), "rear_compression".to_string(), "rear_turning".to_string(), &rear_sus_data_f32, false).unwrap();
+        self.telem_data.set_turning_points("front_rebound".to_string(), "front_compression".to_string(), "front_turning".to_string(), &front_sus_data_f32, true).unwrap();
+        
         let rear_sus_data_f32_enum = self.telem_data.enumerated_with_transform(&rear_sus_data_f32, 1.0 / rs_pot_data.polling_rate as f32, 0.0);
         let front_sus_data_f32_enum = self.telem_data.enumerated_with_transform(&front_sus_data_f32, 1.0 / fs_pot_data.polling_rate as f32, 0.0);
 
@@ -159,20 +166,21 @@ impl<'a> TelemApp<'a> {
         
         self.telem_data.set("rear_suspension_line".to_string(), TelemData::LineManager(rear_line_manager)).unwrap();
         self.telem_data.set("front_suspension_line".to_string(), TelemData::LineManager(front_line_manager)).unwrap();
-        
+
+
         let suspension_graph = SuspensionGraph::new("rear_suspension_line".to_string(), "front_suspension_line".to_string());
         let mut rear_histogram = BarPoints::new("rear_suspension_counts".to_string());
         let mut front_histogram = BarPoints::new("front_suspension_counts".to_string());
         rear_histogram.set_dims(500.0, 500.0);
         front_histogram.set_dims(500.0, 500.0);
-        //self.telem_data.set_turning_points("front_disp".to_string(), "front_speed".to_string(), "FTurning".to_string(), &rear_sus_data_f32).unwrap();
-        let disp_vel = DispVelGraph::new();
+
+        let disp_vel = DispVelGraph::new("".to_string(),"".to_string(),"rear_rebound".to_string(),"rear_compression".to_string());
 
         self.sus_view = View::new();
-        //self.sus_view.add_graph(0,Box::new(disp_vel));
         self.sus_view.add_graph(1, Box::new(suspension_graph));
-        self.sus_view.add_graph(2, Box::new(rear_histogram));
-        self.sus_view.add_graph(2, Box::new(front_histogram));
+        //self.sus_view.add_graph(2, Box::new(rear_histogram));
+        //self.sus_view.add_graph(2, Box::new(front_histogram));
+        self.sus_view.add_graph(2,Box::new(disp_vel));
 
 
         self.telem_data.set("front_dyn_sag".to_string(), TelemData::F32(self.telem_data.data_average_raw(&front_sus_data_f32))).unwrap();
@@ -235,6 +243,7 @@ impl<'a> eframe::App for TelemApp<'a> {
                 }
                 if ui.button("Load").clicked() {
                     self.loader.load(self.path.to_string());
+                    
                     updated_data = true;
                 }
             });
@@ -265,53 +274,7 @@ impl<'a> eframe::App for TelemApp<'a> {
             }
 
             ui.horizontal(|ui| {
-                ui.label("Stroke length: ");
-                ui.text_edit_singleline(&mut self.current_remap_info_len);
-            });
 
-            ui.horizontal(|ui| {
-                ui.label("Low threshold: ");
-                ui.text_edit_singleline(&mut self.current_remap_info_low);
-            });
-
-            ui.horizontal(|ui| {
-                ui.label("High threshold: ");
-                ui.text_edit_singleline(&mut self.current_remap_info_high);
-            });
-
-            ui.horizontal(|ui| {
-                if ui.button("Recalculate").clicked() {
-                    let mut incorrect_formatting = false;
-                    
-                    if let Ok(stroke_len_res) = self.current_remap_info_len.parse::<f32>() {
-                        stroke_len = stroke_len_res;
-                    } else {
-                        incorrect_formatting = true;
-                    }
-                    
-                    if let Ok(low_res) = self.current_remap_info_low.parse::<f32>() {
-                        low_adj = low_res;
-                    } else {
-                        incorrect_formatting = true;
-                    }
-                    
-                    if let Ok(high_res) = self.current_remap_info_high.parse::<f32>() {
-                        high_adj = high_res;
-                    } else {
-                        incorrect_formatting = true;
-                    }
-    
-                    if !remap_info_selected {
-                        ui.label("Error: No remap info selected");
-                    } else if incorrect_formatting {
-                        ui.label("Error: Incorrect Formatting");
-                    } else {
-                        curr_sus_remap_info.stroke_len = stroke_len;
-                        curr_sus_remap_info.calc_vals_from_min_and_max(low_adj, high_adj);
-                        self.config.set_sus_remap_info(self.current_remap_info_ref.clone(), curr_sus_remap_info);
-                        updated_data = true;
-                    }
-                }
 
                 if !self.show_unmapped_data {
                     if ui.button("Show data without mapping").clicked() {
@@ -326,14 +289,7 @@ impl<'a> eframe::App for TelemApp<'a> {
                 }
             });
 
-            ui.horizontal(|ui| {
-                ui.label("New remap info name: ");
-                ui.text_edit_singleline(&mut self.current_remap_info_new);
 
-                if ui.button("Add").clicked() {
-                    self.config.add_sus_remap_info(self.current_remap_info_new.clone(), SuspensionRemapInfo::default())
-                }
-            });
 
             ui.heading("Suspension information");
             ui.heading("Suspension Data");
