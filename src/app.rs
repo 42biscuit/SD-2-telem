@@ -13,6 +13,7 @@ use crate::Buff;
 
 use std::collections::HashMap;
 
+use egui::Color32;
 use rfd::FileDialog;
 
 use std::env;
@@ -141,6 +142,7 @@ impl<'a> TelemApp<'a> {
         let mut rear_sus_data_f32: Vec<f32> = rs_pot_data.data.iter().map(|d| { *d as f32 }).collect();
         let mut front_sus_data_f32: Vec<f32> = fs_pot_data.data.iter().map(|d| { *d as f32 }).collect();
 
+
         if !self.show_unmapped_data {
             let rs_remap_info = self.config.get_sus_remap_info(rs_pot_data.remap_ref.clone()).expect("Error: Suspension remap info not found");
             let fs_remap_info = self.config.get_sus_remap_info(fs_pot_data.remap_ref.clone()).expect("Error: Suspension remap info not found");
@@ -148,12 +150,12 @@ impl<'a> TelemApp<'a> {
             rear_sus_data_f32 = self.telem_data.remapped_1d_with_clamp(&rear_sus_data_f32, &rs_remap_info, 0.0, 100.0);
             front_sus_data_f32 = self.telem_data.remapped_1d_with_clamp(&front_sus_data_f32, &fs_remap_info, 0.0, 100.0);
 
-            self.telem_data.set_count("rear_suspension_counts".to_string(), &rear_sus_data_f32, 16, 100.0, false).unwrap();
-            self.telem_data.set_count("front_suspension_counts".to_string(), &front_sus_data_f32, 16, 100.0, false).unwrap();
+            self.telem_data.set_count("rear_suspension_counts".to_string(), &rear_sus_data_f32, 26, 100.0, false).unwrap();
+            self.telem_data.set_count("front_suspension_counts".to_string(), &front_sus_data_f32, 26, 100.0, false).unwrap();
         } else {
             self.telem_data.set("stroke_len".to_string(), TelemData::F32(config_info::DEFAULT_SUS_MAX - config_info::DEFAULT_SUS_MAX)).unwrap();
-            self.telem_data.set_count("rear_suspension_counts".to_string(), &rear_sus_data_f32, 16, config_info::DEFAULT_SUS_MAX as f64, false).unwrap();
-            self.telem_data.set_count("front_suspension_counts".to_string(), &front_sus_data_f32, 16, config_info::DEFAULT_SUS_MAX as f64, false).unwrap();
+            self.telem_data.set_count("rear_suspension_counts".to_string(), &rear_sus_data_f32, 26, config_info::DEFAULT_SUS_MAX as f64, false).unwrap();
+            self.telem_data.set_count("front_suspension_counts".to_string(), &front_sus_data_f32, 26, config_info::DEFAULT_SUS_MAX as f64, false).unwrap();
         }
         self.telem_data.set_turning_points("rear_rebound".to_string(), "rear_compression".to_string(), "rear_turning".to_string(), &rear_sus_data_f32, false).unwrap();
         self.telem_data.set_turning_points("front_rebound".to_string(), "front_compression".to_string(), "front_turning".to_string(), &front_sus_data_f32, true).unwrap();
@@ -169,18 +171,20 @@ impl<'a> TelemApp<'a> {
 
 
         let suspension_graph = SuspensionGraph::new("rear_suspension_line".to_string(), "front_suspension_line".to_string());
-        let mut rear_histogram = BarPoints::new("rear_suspension_counts".to_string());
-        let mut front_histogram = BarPoints::new("front_suspension_counts".to_string());
+        let mut rear_histogram = BarPoints::new("rear_suspension_counts".to_string(),Color32::RED);
+        let mut front_histogram = BarPoints::new("front_suspension_counts".to_string(),Color32::LIGHT_BLUE);
         rear_histogram.set_dims(500.0, 500.0);
         front_histogram.set_dims(500.0, 500.0);
 
-        let disp_vel = DispVelGraph::new("".to_string(),"".to_string(),"rear_rebound".to_string(),"rear_compression".to_string());
+        let disp_vel_rebound = DispVelGraph::new("rebound".to_string(),"front_rebound".to_string(),"rear_rebound".to_string());
+        let disp_vel_compression = DispVelGraph::new("compression".to_string(),"front_compression".to_string(),"rear_compression".to_string());
 
         self.sus_view = View::new();
         self.sus_view.add_graph(1, Box::new(suspension_graph));
-        //self.sus_view.add_graph(2, Box::new(rear_histogram));
-        //self.sus_view.add_graph(2, Box::new(front_histogram));
-        self.sus_view.add_graph(2,Box::new(disp_vel));
+        self.sus_view.add_graph(2, Box::new(rear_histogram));
+        self.sus_view.add_graph(2, Box::new(front_histogram));
+        self.sus_view.add_graph(3,Box::new(disp_vel_rebound));
+        self.sus_view.add_graph(4,Box::new(disp_vel_compression));
 
 
         self.telem_data.set("front_dyn_sag".to_string(), TelemData::F32(self.telem_data.data_average_raw(&front_sus_data_f32))).unwrap();
@@ -323,8 +327,10 @@ impl<'a> eframe::App for TelemApp<'a> {
         egui::CentralPanel::default().show(ctx, |ui| {
             //let mut metadata = HashMap::<String, f64>::new();
             //metadata.insert("bottom_out_threshold".to_string(), self.bottom_out_threshold);
-
-            self.sus_view.draw(&self.telem_data, ctx, ui);
+            egui::ScrollArea::vertical().show(ui, |ui| {
+                
+                self.sus_view.draw(&self.telem_data, ctx, ui);
+            });
 
             // ui.heading("eframe template");
             // ui.hyperlink("https://github.com/emilk/eframe_template");

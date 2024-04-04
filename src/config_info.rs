@@ -36,7 +36,11 @@ impl SuspensionRemapInfo {
     }
 
     pub fn remap(&self, val: f32) -> f32 {
-        ((val - self.offset) / 850.0) * 100.0
+        ((val - self.offset) / self.stroke_len) * 100.0
+    }
+
+    pub fn remap_no_offset(&self, val: f32) -> f32 {
+        (val / self.stroke_len) * 100.0
     }   
 
     pub fn min(&self) -> f32 {
@@ -52,7 +56,7 @@ impl SuspensionRemapInfo {
     }
 
     pub fn inverse_without_stroke_len_scale(&self, val: f32) -> f32 {
-        ((val - self.offset) / 853.0) * 100.0
+        ((val - self.offset) / self.stroke_len) * 100.0
     }
 
 }

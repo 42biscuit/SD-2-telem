@@ -184,7 +184,7 @@ impl Data {
             }
 
             // if decreasing dosent match the direction that the graph is heading in flip it
-            if (decreasing == (back_average > front_average +  (if decreasing == true{-15.0 }else{15.0 }))) && (plot_point - last_point).abs() > 10.0{
+            if (decreasing == (back_average > front_average +  (if decreasing == true{-15.0 }else{15.0 }))) && (plot_point - last_point).abs() > 1.0{
                 decreasing ^= true;
                 turning_points.push((outer_index as f32 / FREQUENCY,plot_point.clone()));
             };
@@ -275,6 +275,13 @@ impl Data {
     pub fn remapped_1d_with_clamp(&mut self, data: &Vec<f32>, remap_info: &SuspensionRemapInfo, min: f32, max: f32) -> Vec<f32> {
         data.iter().map(|d| {
             let new_val = f32::clamp(remap_info.remap(*d), min, max);
+            new_val
+        }).collect()
+    }
+
+    pub fn remapped_1d_with_clamp_no_offset(&mut self, data: &Vec<f32>, remap_info: &SuspensionRemapInfo, min: f32, max: f32) -> Vec<f32> {
+        data.iter().map(|d| {
+            let new_val = f32::clamp(remap_info.remap_no_offset(*d), min, max);
             new_val
         }).collect()
     }

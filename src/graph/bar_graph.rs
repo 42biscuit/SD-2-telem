@@ -1,5 +1,5 @@
 use crate::data::TelemData;
-use egui::Id;
+use egui::{Color32, Id};
 use egui_plot::Plot;
 use egui_plot::{Bar, BarChart};
 
@@ -9,13 +9,15 @@ const BAR_WIDTH: f64 = 1.0;
 pub struct BarPoints {
     sus_count_str: String,
     dims: Option<(f32, f32)>,
+    colour: Color32
 }
 
 impl BarPoints {
-    pub fn new(sus_count_str: String) -> BarPoints {
+    pub fn new(sus_count_str: String, colour:Color32) -> BarPoints {
         BarPoints {
             sus_count_str,
             dims: None,
+            colour: colour,
         }
     }
 
@@ -36,7 +38,7 @@ impl<'a> Graph<'a> for BarPoints {
 
         let mut bars = Vec::new();
         for (i, v) in data_count.iter().enumerate() {
-            let bar = Bar::new(i as f64 * BAR_WIDTH, *v as f64).width(BAR_WIDTH);
+            let bar = Bar::new(i as f64 * BAR_WIDTH, *v as f64).width(BAR_WIDTH).fill(self.colour);
 
             bars.push(bar);
         }
