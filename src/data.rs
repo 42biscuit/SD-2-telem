@@ -6,7 +6,7 @@ use std::{io, thread};
 use std::io::prelude::*;
 
 pub const BUFF_SIZE: usize = 4500;
-pub const FREQUENCY: f32 = 250.0;
+pub const FREQUENCY: f32 = 1000.0;
 
 ///The minimum period of a compression + rebound in the data. Used for turning point detection
 pub const MIN_PERIOD: f64 = 0.1; 
@@ -184,7 +184,7 @@ impl Data {
             }
 
             // if decreasing dosent match the direction that the graph is heading in flip it
-            if (decreasing == (back_average > front_average +  (if decreasing == true{-15.0 }else{15.0 }))) && (plot_point - last_point).abs() > 1.0{
+            if (decreasing == (back_average > front_average +  (if decreasing == true{-5.0 }else{5.0 }))) && (plot_point - last_point).abs() > 0.0{
                 decreasing ^= true;
                 turning_points.push((outer_index as f32 / FREQUENCY,plot_point.clone()));
             };

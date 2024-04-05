@@ -1,5 +1,6 @@
 use egui::{Color32, Id, Vec2b};
-use egui_plot::{Plot, PlotPoint, PlotPoints};
+use egui_plot::{Line, Plot, PlotPoint, PlotPoints};
+use linreg::linear_regression_of;
 
 use crate::data::TelemData;
 
@@ -38,6 +39,11 @@ impl <'a> Graph<'a> for DispVelGraph{
             return;
         }
 
+        let (front_slope,front_intercept):(f32,f32) = linear_regression_of(&front_data).unwrap();
+        let front_reg_line = [[0.0_f64,front_intercept as f64],[200.0,200.0 * front_slope as f64]];
+            
+
+
         let rear_res = data.get(self.rear.clone());
         let rear_data;
         if let Ok(TelemData::F32PV(counts)) = rear_res {
@@ -46,10 +52,10 @@ impl <'a> Graph<'a> for DispVelGraph{
             return;
         }
 
-
-
+        let (rear_slope,rear_intercept):(f32,f32) = linear_regression_of(&rear_data).unwrap(); //(slope, intercept)
+        let rear_reg_line = [[0.0_f64,rear_intercept as f64],[200.0,200.0 * rear_slope as f64]];
+            
         let _axis_bools_auto_zoom = Vec2b::new(false, false);
-
 
 
         let rebound_plot = Plot::new("suspension43")
@@ -62,7 +68,10 @@ impl <'a> Graph<'a> for DispVelGraph{
 
             rebound_plot.show(ui, |plot_ui| {
                 plot_ui.points(egui_plot::Points::new( PlotPoints::Owned( to_plot_points(&rear_data))).radius(4.0).color(Color32::RED));
-                plot_ui.points(egui_plot::Points::new( PlotPoints::Owned( to_plot_points(&front_data))).radius(4.0).color(Color32::BLUE));
+                plot_ui.line(Line::new(PlotPoints::new(rear_reg_line.to_vec())).width(3.0).color(Color32::RED));
+                plot_ui.points(egui_plot::Points::new( PlotPoints::Owned( to_plot_points(&front_data))).radius(4.0).color(Color32::LIGHT_BLUE));
+                plot_ui.line(Line::new(PlotPoints::new(front_reg_line.to_vec())).width(3.0).color(Color32::LIGHT_BLUE));
+            
             });
 
         });
