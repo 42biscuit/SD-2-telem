@@ -40,7 +40,7 @@ impl <'a> Graph<'a> for DispVelGraph{
         }
 
         let (front_slope,front_intercept):(f32,f32) = linear_regression_of(&front_data).unwrap();
-        let front_reg_line = [[0.0_f64,front_intercept as f64],[200.0,200.0 * front_slope as f64]];
+        let front_reg_line = [[0.0_f64,front_intercept as f64],[100.0,100.0 * front_slope as f64]];
             
 
 
@@ -53,12 +53,12 @@ impl <'a> Graph<'a> for DispVelGraph{
         }
 
         let (rear_slope,rear_intercept):(f32,f32) = linear_regression_of(&rear_data).unwrap(); //(slope, intercept)
-        let rear_reg_line = [[0.0_f64,rear_intercept as f64],[200.0,200.0 * rear_slope as f64]];
+        let rear_reg_line = [[0.0_f64,rear_intercept as f64],[100.0,100.0 * rear_slope as f64]];
             
         let _axis_bools_auto_zoom = Vec2b::new(false, false);
 
 
-        let rebound_plot = Plot::new("suspension43")
+        let rebound_plot = Plot::new("disp_vel")
             .id(Id::new(&self.plot_id))
             .view_aspect(3.0)
             .allow_scroll(false)

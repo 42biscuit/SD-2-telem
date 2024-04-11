@@ -9,7 +9,7 @@ pub const BUFF_SIZE: usize = 4500;
 pub const FREQUENCY: f32 = 1000.0;
 
 ///The minimum period of a compression + rebound in the data. Used for turning point detection
-pub const MIN_PERIOD: f64 = 0.1; 
+pub const MIN_PERIOD: f64 = 0.04; 
 /// allows more polymorphic approach to storing different data typed to Data
 #[allow(dead_code)]
 pub enum TelemData {
@@ -175,16 +175,16 @@ impl Data {
             median[outer] = self.data_average_raw(&data[(outer - turning_range/2)..(outer + turning_range/2)].to_vec())
         }
 
-        for plot_point in &line_choice[turning_range..line_choice.len() - turning_range] {
+        for plot_point in &median[turning_range..line_choice.len() - turning_range] {
             let (mut back_average, mut front_average) = (0.0, 0.0);
-            let last_point = turning_points.last().unwrap().1;
+            let last_point = median.last().unwrap();
             for inner_index in 0..turning_range {
-                front_average += (plot_point - line_choice[outer_index + inner_index])as f32;
-                back_average += (plot_point - line_choice[outer_index - inner_index]) as f32;
+                front_average += (plot_point - median[outer_index + inner_index])as f32;
+                back_average += (plot_point - median[outer_index - inner_index]) as f32;
             }
 
             // if decreasing dosent match the direction that the graph is heading in flip it
-            if (decreasing == (back_average > front_average +  (if decreasing == true{-5.0 }else{5.0 }))) && (plot_point - last_point).abs() > 0.0{
+            if (decreasing == (back_average > front_average +  (if decreasing == true{-10.0 }else{10.0 }))) && (plot_point - last_point).abs() > 5.0{
                 decreasing ^= true;
                 turning_points.push((outer_index as f32 / FREQUENCY,plot_point.clone()));
             };
@@ -194,6 +194,18 @@ impl Data {
  
         //line_choice[last..current].to_vec()
         
+        let compressions_rebounds = Self::set_compressions_rebounds(turning_points.clone(),&median);
+        
+        println!("{}, {}", compressions_rebounds[0].len(), compressions_rebounds[1].len());
+        //self.set_displacements(displacements_field, &turning_points).unwrap();
+        self.set(compressions_field, TelemData::F32PV(compressions_rebounds[0].clone())).unwrap();
+        self.set(rebounds_field, TelemData::F32PV(compressions_rebounds[1].clone())).unwrap();
+        
+
+        self.set(turning_point_field, TelemData::PlotPointV(to_plot_points(&turning_points))) 
+
+    }
+    pub fn set_compressions_rebounds(turning_points: Vec<(f32,f32)>, line_choice:&Vec<f32>)->[Vec<(f32,f32)>;2]{
         let mut compressions = Vec::new();
         let mut rebounds = Vec::new();
         let mut last = turning_points[0];
@@ -215,14 +227,8 @@ impl Data {
             }
             last = turning_points[point];
         }
-        
-        println!("{}, {}", compressions.len(), rebounds.len());
-        //self.set_displacements(displacements_field, &turning_points).unwrap();
-        self.set(compressions_field, TelemData::F32PV(compressions)).unwrap();
-        self.set(rebounds_field, TelemData::F32PV(rebounds)).unwrap();
-        
 
-        self.set(turning_point_field, TelemData::PlotPointV(to_plot_points(&turning_points))) 
+        [compressions,rebounds]
     }
 
     /// Sets the Displacement value for the given data

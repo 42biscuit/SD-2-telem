@@ -1,6 +1,6 @@
 use crate::data::TelemData;
 use egui::{Color32, Id};
-use egui_plot::Plot;
+use egui_plot::{uniform_grid_spacer, Axis, Plot};
 use egui_plot::{Bar, BarChart};
 
 use super::Graph;
@@ -52,7 +52,9 @@ impl<'a> Graph<'a> for BarPoints {
             .allow_boxed_zoom(false)
             .allow_zoom(false)
             .allow_drag(false)
-            .show_grid(false);
+            .show_grid(false)
+            .x_grid_spacer([1,50,100]);
+            
 
         if let Some((width, height)) = self.dims {
             plot = plot
