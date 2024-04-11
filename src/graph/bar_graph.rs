@@ -52,8 +52,7 @@ impl<'a> Graph<'a> for BarPoints {
             .allow_boxed_zoom(false)
             .allow_zoom(false)
             .allow_drag(false)
-            .show_grid(false)
-            .x_grid_spacer([1,50,100]);
+            .show_grid(false);
             
 
         if let Some((width, height)) = self.dims {
