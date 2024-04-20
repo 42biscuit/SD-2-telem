@@ -9,7 +9,7 @@ pub const BUFF_SIZE: usize = 4500;
 pub const FREQUENCY: f32 = 1000.0;
 
 ///The minimum period of a compression + rebound in the data. Used for turning point detection
-pub const MIN_PERIOD: f64 = 0.04; 
+pub const MIN_PERIOD: f64 = 0.02; 
 /// allows more polymorphic approach to storing different data typed to Data
 #[allow(dead_code)]
 pub enum TelemData {
@@ -162,10 +162,10 @@ impl Data {
         let line_choice = data;
 
         let turning_range = ((FREQUENCY * MIN_PERIOD as f32)/2.0) as usize;
-        let mut outer_index = turning_range.clone() ;
+        let mut outer_index = turning_range;
 
         let mut decreasing = false;
-        turning_points.push((0.0,line_choice[turning_range]));
+        turning_points.push((0.0,line_choice[0]));
         if turning_points[0].1 > line_choice[5] {
             decreasing = true;
         }
@@ -175,26 +175,28 @@ impl Data {
             median[outer] = self.data_average_raw(&data[(outer - turning_range/2)..(outer + turning_range/2)].to_vec())
         }
 
-        for plot_point in &median[turning_range..line_choice.len() - turning_range] {
+        let mut last_point = data[0];
+        for plot_point in &data[turning_range..line_choice.len() - turning_range] {
+
+
             let (mut back_average, mut front_average) = (0.0, 0.0);
-            let last_point = median.last().unwrap();
-            for inner_index in 0..turning_range {
+            for inner_index in 0..turning_range-1 {
                 front_average += (plot_point - median[outer_index + inner_index])as f32;
                 back_average += (plot_point - median[outer_index - inner_index]) as f32;
             }
 
             // if decreasing dosent match the direction that the graph is heading in flip it
-            if (decreasing == (back_average > front_average +  (if decreasing == true{-10.0 }else{10.0 }))) && (plot_point - last_point).abs() > 5.0{
+            if (decreasing == (back_average > front_average +  (if decreasing == true{-10.0 }else{10.0 }))) && (plot_point - last_point).abs() > 1.0{
                 decreasing ^= true;
                 turning_points.push((outer_index as f32 / FREQUENCY,plot_point.clone()));
+                last_point = turning_points.last().unwrap().1
             };
-
             outer_index += 1
         }
  
         //line_choice[last..current].to_vec()
         
-        let compressions_rebounds = Self::set_compressions_rebounds(turning_points.clone(),&median);
+        let compressions_rebounds = Self::set_compressions_rebounds(turning_points.clone(),&data,front);
         
         println!("{}, {}", compressions_rebounds[0].len(), compressions_rebounds[1].len());
         //self.set_displacements(displacements_field, &turning_points).unwrap();
@@ -205,25 +207,28 @@ impl Data {
         self.set(turning_point_field, TelemData::PlotPointV(to_plot_points(&turning_points))) 
 
     }
-    pub fn set_compressions_rebounds(turning_points: Vec<(f32,f32)>, line_choice:&Vec<f32>)->[Vec<(f32,f32)>;2]{
+    pub fn set_compressions_rebounds(turning_points: Vec<(f32,f32)>, line_choice:&Vec<f32>, front:bool)->[Vec<(f32,f32)>;2]{
         let mut compressions = Vec::new();
         let mut rebounds = Vec::new();
         let mut last = turning_points[0];
-        for point in 1..(turning_points.len()-1){   // +ve disp and it is a rebound
+        for point in 1..(turning_points.len()-2){   // +ve disp and it is a rebound
             let current_disp = turning_points[point].1 - last.1;
             let mut max_speed = 0.0_f32;
             let mut last_point_y = line_choice[(last.0 * FREQUENCY) as usize];
-            for inner in line_choice[1 + (last.0 * FREQUENCY) as usize..(turning_points[point].0 * FREQUENCY) as usize].to_vec(){
+            for inner in line_choice[(last.0 * FREQUENCY) as usize..(turning_points[point].0 * FREQUENCY) as usize].to_vec(){
                 if (inner - last_point_y).abs() > max_speed.abs(){
                     max_speed = (inner - last_point_y).abs()
                 }
                 last_point_y = inner
             } 
-            if current_disp < 0.0{
-
-                compressions.push((current_disp.abs(),max_speed.abs()));
-            }else{
-                rebounds.push((current_disp.abs(),max_speed.abs()));
+            if current_disp.abs() > 5.0{
+                max_speed = (max_speed.abs() / if !front {4.55}else{13.65}) * FREQUENCY  ;
+                if current_disp < 0.0{
+    
+                    compressions.push((current_disp.abs(),max_speed.abs()));
+                }else{
+                    rebounds.push((current_disp.abs(),max_speed.abs()));
+                }
             }
             last = turning_points[point];
         }

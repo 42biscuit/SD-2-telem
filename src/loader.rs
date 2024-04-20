@@ -35,10 +35,10 @@ impl Loader {
         let file = File::open(path.trim()).unwrap();
         let mut lines = io::BufReader::new(&file).lines();
         let first_line = lines.next().unwrap().unwrap();
-
+        let second_line = lines.next().unwrap().unwrap();
         let mut pot_data_is = Vec::<String>::new();
         let metadata_iter = first_line.split(',');
-
+        let offsets_iter = second_line.split(',');
         for md in metadata_iter {
             let mut tag_rate_iter = md.split(':');
             let tag = tag_rate_iter.next().expect("Error: Invalid metadata");
@@ -50,7 +50,9 @@ impl Loader {
                 remap_ref, polling_rate: rate, data: Vec::new()
             });
         }
+        
 
+        
         //does not filter out 
         for line in lines {
             

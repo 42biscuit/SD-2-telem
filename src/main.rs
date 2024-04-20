@@ -31,7 +31,7 @@ fn main() -> eframe::Result<()> {
         native_options.clone(), 
         Box::new(|cc|{
             cc.egui_ctx.set_style(style);
-            Box::new(sd2_telem::InitialConfig::new(cc))
+            Box::new(sd2_telem::InitialConfig::new_with_mut_config(cc ))
         })
     ).unwrap();
     

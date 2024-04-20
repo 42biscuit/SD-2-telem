@@ -1,5 +1,7 @@
 use eframe::egui;
 
+use crate::ConfigInfo;
+
 #[derive(Default)]
 pub struct InitialConfig {}
 
@@ -9,6 +11,13 @@ impl InitialConfig {
         // Restore app state using cc.storage (requires the "persistence" feature).
         // Use the cc.gl (a glow::Context) to create graphics shaders and buffers that you can use
         // for e.g. egui::PaintCallback.
+        Self::default()
+    }
+
+
+    pub fn new_with_mut_config(cc: &eframe::CreationContext<'_>) -> Self{
+
+
         Self::default()
     }
 }
@@ -23,5 +32,9 @@ impl eframe::App for InitialConfig {
                 ui.label("front stroke".to_string());
             });
         });
+   }
+
+   fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>)  {
+       
    }
 }

@@ -142,6 +142,8 @@ impl<'a> TelemApp<'a> {
         let mut rear_sus_data_f32: Vec<f32> = rs_pot_data.data.iter().map(|d| { *d as f32 }).collect();
         let mut front_sus_data_f32: Vec<f32> = fs_pot_data.data.iter().map(|d| { *d as f32 }).collect();
 
+        
+
 
         if !self.show_unmapped_data {
             let rs_remap_info = self.config.get_sus_remap_info(rs_pot_data.remap_ref.clone()).expect("Error: Suspension remap info not found");
