@@ -6,12 +6,11 @@ use crate::graph::bar_graph::BarPoints;
 use crate::graph::disp_vel_graph::DispVelGraph;
 use crate::graph::line_manager::LineManager;
 use crate::graph::suspension_graph::SuspensionGraph;
+use crate::graph::wave_gen::WaveGen;
 use crate::graph::to_plot_points;
 use crate::loader::Loader;
 use crate::view::View;
 use crate::Buff;
-
-use std::collections::HashMap;
 
 use egui::Color32;
 use rfd::FileDialog;
@@ -136,15 +135,13 @@ impl<'a> TelemApp<'a> {
         let rs_pot_data = self.loader.get_raw_pot_data("RS".to_string());
         let fs_pot_data = self.loader.get_raw_pot_data("FS".to_string());
         println!("{:?}, {:?}", rs_pot_data.remap_ref,fs_pot_data.remap_ref);
-        let rb_pot_data = self.loader.get_raw_pot_data("RB".to_string());
-        let fb_pot_data = self.loader.get_raw_pot_data("FB".to_string());
+        self.config.update_sus_remap_offset(rs_pot_data.remap_ref.clone(), rs_pot_data.offset as f32);
+        self.config.update_sus_remap_offset(fs_pot_data.remap_ref.clone(), fs_pot_data.offset as f32);
 
         let mut rear_sus_data_f32: Vec<f32> = rs_pot_data.data.iter().map(|d| { *d as f32 }).collect();
         let mut front_sus_data_f32: Vec<f32> = fs_pot_data.data.iter().map(|d| { *d as f32 }).collect();
 
         
-
-
         if !self.show_unmapped_data {
             let rs_remap_info = self.config.get_sus_remap_info(rs_pot_data.remap_ref.clone()).expect("Error: Suspension remap info not found");
             let fs_remap_info = self.config.get_sus_remap_info(fs_pot_data.remap_ref.clone()).expect("Error: Suspension remap info not found");
@@ -249,8 +246,7 @@ impl<'a> eframe::App for TelemApp<'a> {
                 }
                 if ui.button("Load").clicked() {
                     self.loader.load(self.path.to_string());
-                    
-                    updated_data = true;
+                    updated_data = true;  
                 }
             });
 
@@ -267,9 +263,7 @@ impl<'a> eframe::App for TelemApp<'a> {
                     }
                 });
 
-            let mut stroke_len = 0.0;
-            let mut low_adj = 0.0;
-            let mut high_adj = 0.0;
+
             
             //let curr_sus_remap_info = self.config.get_sus_remap_info();
             let mut remap_info_selected = false;

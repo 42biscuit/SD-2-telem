@@ -6,6 +6,7 @@ pub mod bar_graph;
 pub mod line_manager;
 pub mod suspension_graph;
 pub mod disp_vel_graph;
+pub mod wave_gen;
 
 /// Convert a value of an arbitrary data type to a PlotPoint
 pub trait ToPlotPoint {

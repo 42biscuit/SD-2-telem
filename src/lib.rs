@@ -10,7 +10,6 @@ mod view;
 mod initial_config;
 
 
-
 pub use config_info::ConfigInfo;
 pub use initial_config::InitialConfig;
 pub use app::TelemApp;

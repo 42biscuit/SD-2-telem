@@ -39,7 +39,11 @@ impl <'a> Graph<'a> for DispVelGraph{
             return;
         }
 
-        let (front_slope,front_intercept):(f32,f32) = linear_regression_of(&front_data).unwrap();
+        let (mut front_slope,mut front_intercept):(f32,f32) = (0.0,0.0);
+        match linear_regression_of(&front_data) {
+            Ok(r) => (front_slope,front_intercept) = r,
+            Err(e) => eprintln!("lack of turning points"),
+        }
         let front_reg_line = [[0.0_f64,front_intercept as f64],[100.0,100.0 * front_slope as f64]];
             
 
@@ -56,13 +60,19 @@ impl <'a> Graph<'a> for DispVelGraph{
         let rear_reg_line = [[0.0_f64,rear_intercept as f64],[100.0,100.0 * rear_slope as f64]];
             
         let _axis_bools_auto_zoom = Vec2b::new(false, false);
-
+        let mut max = 0.0;
+        for i in &front_data{
+            if i.1 > max{
+                max = i.1.clone();
+            }
+        }
 
         let rebound_plot = Plot::new("disp_vel")
             .id(Id::new(&self.plot_id))
             .view_aspect(3.0)
             .allow_scroll(false)
             .allow_boxed_zoom(false)
+            .data_aspect(1.0/(max/50.0))
             .show_grid(true);
         ui.horizontal(|ui|{
 

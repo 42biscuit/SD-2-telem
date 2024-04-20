@@ -34,6 +34,9 @@ impl SuspensionRemapInfo {
         self.scale = DEFAULT_SUS_DIFF / diff;
         self.offset = DEFAULT_SUS_MIN - new_min * self.scale;
     }
+    pub fn set_offset(&mut self, offset: f32) {
+        self.offset = offset;
+    }
 
     pub fn remap(&self, val: f32) -> f32 {
         ((val - self.offset) / self.stroke_len) * 100.0
@@ -88,6 +91,12 @@ impl ConfigInfo {
 
     pub fn add_sus_remap_info(&mut self, key: String, info: SuspensionRemapInfo) {
         self.sus_remap_info.insert(key, info);
+    }
+
+    pub fn update_sus_remap_offset(&mut self,key:String, offset:f32){
+        let mut a = self.get_sus_remap_info(key.clone()).unwrap();
+        a.set_offset(offset);
+        self.set_sus_remap_info(key, a);
     }
 
     pub fn set_sus_remap_info(&mut self, key: String, info: SuspensionRemapInfo) {

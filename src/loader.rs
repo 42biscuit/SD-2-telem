@@ -6,6 +6,7 @@ use std::ops::{Bound, RangeBounds};
 
 pub struct RawPotData {
     pub remap_ref: String,
+    pub offset: u32,
     pub polling_rate: u32,
     pub data: Vec<u32>,
 }
@@ -39,17 +40,19 @@ impl Loader {
         let mut pot_data_is = Vec::<String>::new();
         let metadata_iter = first_line.split(',');
         let offsets_iter = second_line.split(',');
-        for md in metadata_iter {
+        for (md,str_offset) in metadata_iter.zip(offsets_iter) {
             let mut tag_rate_iter = md.split(':');
             let tag = tag_rate_iter.next().expect("Error: Invalid metadata");
             let rate = tag_rate_iter.next().expect("Error: Invalid metadata").parse::<u32>().expect("Error: Invalid polling rate in metadata");
             let remap_ref = tag_rate_iter.next().expect("Error: Invalid metadata").to_string();
+            let offset = str_offset.parse::<u32>().unwrap();
             println!("{:?}",&rate);
             pot_data_is.push(tag.to_string());
             self.raw_pot_datas.insert(tag.to_owned(), RawPotData {
-                remap_ref, polling_rate: rate, data: Vec::new()
+                remap_ref, offset, polling_rate: rate, data: Vec::new()
             });
         }
+        
         
 
         
